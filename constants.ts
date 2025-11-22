@@ -1,59 +1,59 @@
-import { ElementType, ThemeConfig, NavButton, StandardCard } from './types';
+import { ElementType, ThemeConfig, NavButton, CadVector } from './types';
 
 export const THEMES: Record<ElementType, ThemeConfig> = {
-  [ElementType.LAYERS]: {
-    id: ElementType.LAYERS,
-    label: 'LAYERS',
-    baseColor: 'bg-blue-500',
-    accentColor: 'bg-blue-300',
-    textColor: 'text-blue-950',
-    pattern: 'radial-gradient(circle, #3b82f6 2px, transparent 2.5px)', // Blueprint dots
-    iconName: 'Layers'
-  },
-  [ElementType.MACROS]: {
-    id: ElementType.MACROS,
-    label: 'MACROS',
-    baseColor: 'bg-emerald-500',
-    accentColor: 'bg-emerald-300',
-    textColor: 'text-emerald-950',
-    pattern: 'linear-gradient(0deg, transparent 24%, rgba(0, 0, 0, .1) 25%, rgba(0, 0, 0, .1) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, .1) 75%, rgba(0, 0, 0, .1) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(0, 0, 0, .1) 25%, rgba(0, 0, 0, .1) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, .1) 75%, rgba(0, 0, 0, .1) 76%, transparent 77%, transparent)',
-    iconName: 'Terminal'
-  },
-  [ElementType.SYMBOLS]: {
-    id: ElementType.SYMBOLS,
-    label: 'SYMBOLS',
-    baseColor: 'bg-yellow-400',
-    accentColor: 'bg-yellow-200',
-    textColor: 'text-yellow-950',
-    pattern: 'repeating-linear-gradient(45deg, #facc15, #facc15 10px, #eab308 10px, #eab308 20px)',
-    iconName: 'TriangleAlert'
+  [ElementType.DETAILS]: {
+    id: ElementType.DETAILS,
+    label: 'DETAILS',
+    baseColor: 'bg-purple-500',
+    accentColor: 'bg-purple-400',
+    textColor: 'text-purple-950',
+    pattern: 'linear-gradient(0deg, transparent 24%, rgba(168, 85, 247, .4) 25%, rgba(168, 85, 247, .4) 26%, transparent 27%, transparent 74%, rgba(168, 85, 247, .4) 75%, rgba(168, 85, 247, .4) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(168, 85, 247, .4) 25%, rgba(168, 85, 247, .4) 26%, transparent 27%, transparent 74%, rgba(168, 85, 247, .4) 75%, rgba(168, 85, 247, .4) 76%, transparent 77%, transparent)', 
+    iconName: 'Ruler'
   },
   [ElementType.BLOCKS]: {
     id: ElementType.BLOCKS,
     label: 'BLOCKS',
     baseColor: 'bg-orange-500',
-    accentColor: 'bg-orange-300',
+    accentColor: 'bg-orange-400',
     textColor: 'text-orange-950',
-    pattern: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.1) 0%, transparent 50%)',
+    pattern: 'radial-gradient(circle at 50% 50%, rgba(251, 146, 60, 0.8) 0%, transparent 50%)', // Orange 400
     iconName: 'Cuboid'
   },
-  [ElementType.DETAILS]: {
-    id: ElementType.DETAILS,
-    label: 'DETAILS',
-    baseColor: 'bg-purple-500',
-    accentColor: 'bg-purple-300',
-    textColor: 'text-purple-950',
-    pattern: 'linear-gradient(135deg, #a855f7 25%, transparent 25%) -10px 0, linear-gradient(225deg, #a855f7 25%, transparent 25%) -10px 0, linear-gradient(315deg, #a855f7 25%, transparent 25%), linear-gradient(45deg, #a855f7 25%, transparent 25%)',
-    iconName: 'Ruler'
+  [ElementType.SYMBOLS]: {
+    id: ElementType.SYMBOLS,
+    label: 'SYMBOLS',
+    baseColor: 'bg-cyan-500',
+    accentColor: 'bg-cyan-400',
+    textColor: 'text-cyan-950',
+    pattern: 'repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(6, 182, 212, 0.4) 20px)', 
+    iconName: 'TriangleAlert'
+  },
+  [ElementType.LAYERS]: {
+    id: ElementType.LAYERS,
+    label: 'LAYERS',
+    baseColor: 'bg-red-500',
+    accentColor: 'bg-red-400',
+    textColor: 'text-red-950',
+    pattern: 'radial-gradient(circle, #ef4444 1.5px, transparent 2px)', // Red 500 dots
+    iconName: 'Layers'
   },
   [ElementType.SPECIFICATIONS]: {
     id: ElementType.SPECIFICATIONS,
     label: 'SPECS',
-    baseColor: 'bg-slate-500',
-    accentColor: 'bg-slate-300',
-    textColor: 'text-slate-950',
-    pattern: 'repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0,0,0,0.1) 20px)',
+    baseColor: 'bg-pink-500',
+    accentColor: 'bg-pink-400',
+    textColor: 'text-pink-950',
+    pattern: 'repeating-linear-gradient(45deg, #ec4899, #ec4899 10px, #f472b6 10px, #f472b6 20px)', 
     iconName: 'Book'
+  },
+  [ElementType.MACROS]: {
+    id: ElementType.MACROS,
+    label: 'MACROS',
+    baseColor: 'bg-emerald-500',
+    accentColor: 'bg-emerald-400',
+    textColor: 'text-emerald-950',
+    pattern: 'linear-gradient(135deg, #10b981 25%, transparent 25%) -10px 0, linear-gradient(225deg, #10b981 25%, transparent 25%) -10px 0', // Emerald 500
+    iconName: 'Terminal'
   }
 };
 
@@ -69,98 +69,241 @@ export const SUB_CATEGORIES: Record<ElementType, string[]> = {
 export const SIDEBAR_BUTTONS: NavButton[] = [
   { id: 'new', label: 'WHATS NEW', action: 'NEW' },
   { id: 'frequent', label: 'FREQUENTLY USE', action: 'FREQUENT' },
-  { id: 'favorites', label: 'Josh Favorites', action: 'FAVORITES' },
-  { id: 'collections', label: 'Drawing Setup Collections', action: 'ALL' },
-  { id: 'point', label: 'Do you get the point yet?', action: 'ALL', isSpecial: true },
 ];
 
-// Raw data subset from the provided CSV
-const RAW_CAD_DATA = [
-  // LAYERS
-  { id: '425', title: 'Layers - Detail', cat: 'LAYERS', subCat: 'DETAIL', desc: 'Layers - Detail - Piping/Schematics Only', file: '$BR Prot-detail.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\$BR Prot-detail.dwg' },
-  { id: '426', title: 'Layers - Existing', cat: 'LAYERS', subCat: 'EXISTING', desc: 'Layers - Existing Configuration Template', file: '$BR PROT-existing.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\$BR PROT-existing.dwg' },
-  { id: '427', title: 'Layers - New', cat: 'LAYERS', subCat: 'PROPOSED', desc: 'Layers - New Project Template', file: '$BR PROT-new.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\$BR PROT-new.dwg' },
-  { id: '503', title: 'Prop Line Note', cat: 'LAYERS', subCat: 'GENERAL', desc: 'Note Setup - Property Line Note & MText Setup', file: 'NOTE SETUP-PROPERTY LINE.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\NOTE SETUP.dwg' },
+// Helper to generate vector data based on category/subcategory
+// In a real production app, this might live in a View Helper or be stored as JSON in the DB
+export const generateVectorData = (category: ElementType, subCategory: string, id: string, title: string): CadVector => {
+  const titleLower = title.toLowerCase();
 
-  // MACROS
-  { id: '3', title: 'Arrow - Dynamic', cat: 'MACROS', subCat: 'DYNAMIC', desc: 'Fancy Arrow - Dynamic - Adjustable', file: 'ARR DYNAMIC.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\ARR DYNAMIC.dwg' },
-  { id: '8', title: 'Flow Arrow', cat: 'MACROS', subCat: 'DYNAMIC', desc: 'Flow Arrow - Dynamic Directional', file: 'ARR FLOW2.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\ARR FLOW2.dwg' },
-  { id: '857', title: 'Window Dynamic', cat: 'MACROS', subCat: 'DYNAMIC', desc: 'Window Dynamic Block - Resizable', file: 'WINDOW DYNAMIC.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\WINDOW DYNAMIC.dwg' },
-  { id: '924', title: 'Vehicle Dynamic', cat: 'MACROS', subCat: 'DYNAMIC', desc: 'Vehicle Dynamic - Configurable Plan View', file: 'VEHICLE DYNAMIC.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\VEHICLE DYNAMIC.dwg' },
-  { id: '953', title: 'Tree - Dynamic', cat: 'MACROS', subCat: 'DYNAMIC', desc: 'Tree - Various - Plan & Elevation Views', file: 'TREE DYNAMIC.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\TREE DYNAMIC.dwg' },
-  { id: '793', title: 'Guide Lines', cat: 'MACROS', subCat: 'TOOLS', desc: 'Guide Lines - Dynamic - Insert into Title Block', file: 'TB GUIDE.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\TB GUIDE.dwg' },
-
-  // SYMBOLS
-  { id: '1', title: 'Arrow & Line', cat: 'SYMBOLS', subCat: 'ARROWS', desc: 'Arrow & Line - 1 or 2 ways', file: 'ARR LINE.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\ARR LINE.dwg' },
-  { id: '440', title: 'North Arrow', cat: 'SYMBOLS', subCat: 'ARROWS', desc: 'North Arrow - Standard', file: 'NORTHA2.DWG', path: 'J:\\LIB\\BR\\Palette Tools\\NORTHA2.DWG' },
-  { id: '441', title: 'Scale - Std', cat: 'SYMBOLS', subCat: 'ANNOTATION', desc: 'Scale Bar - Standard', file: 'SCALE.DWG', path: 'J:\\LIB\\BR\\Palette Tools\\SCALE.DWG' },
-  { id: '474', title: 'Stamp - DRAFT', cat: 'SYMBOLS', subCat: 'STAMPS', desc: 'Stamp - DRAFT - Not for Construction', file: 'STAMP DRAFT.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\STAMP DRAFT.dwg' },
-  { id: '11', title: 'Star Symbol', cat: 'SYMBOLS', subCat: 'GENERAL', desc: 'Standard Star Marker', file: 'STAR.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\STAR.dwg' },
-  { id: '464', title: 'Legend AutoTurn', cat: 'SYMBOLS', subCat: 'LEGENDS', desc: 'Legend - AutoTurn Analysis', file: 'LEGEND AUTOTURN.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\LEGEND AUTOTURN.dwg' },
-  { id: '476', title: 'Stamp Submittal', cat: 'SYMBOLS', subCat: 'STAMPS', desc: 'Stamp - __% Submittal Placeholder', file: 'STAMP SUBMIT.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\STAMP SUBMIT.dwg' },
-
-  // BLOCKS
-  { id: '42', title: 'Pipe Break', cat: 'BLOCKS', subCat: 'UTILITIES', desc: '00 PIPE BREAK Symbol', file: '00 PIPE BREAK.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\00 PIPE BREAK.dwg' },
-  { id: '446', title: 'Tree - Save', cat: 'BLOCKS', subCat: 'LANDSCAPE', desc: 'Tree - Save - Existing Vegetation', file: 'TREE SAVE.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\TREE SAVE.dwg' },
-  { id: '447', title: 'Tree - Remove', cat: 'BLOCKS', subCat: 'LANDSCAPE', desc: 'Tree - Remove - Demolition Plan', file: 'TREE REMOVE.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\TREE REMOVE.dwg' },
-  { id: '848', title: 'Bench', cat: 'BLOCKS', subCat: 'LANDSCAPE', desc: 'Site Furniture - Bench', file: 'BENCH.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\BENCH.dwg' },
-  { id: '849', title: 'Bike Rack', cat: 'BLOCKS', subCat: 'LANDSCAPE', desc: 'Site Furniture - Bike Rack', file: 'BIKE RACK.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\BIKE RACK.dwg' },
-  { id: '850', title: 'Bollard', cat: 'BLOCKS', subCat: 'TRANSPORT', desc: 'Traffic Control - Bollard', file: 'BOLLARD.DWG', path: 'J:\\LIB\\BR\\Palette Tools\\BOLLARD.DWG' },
-  { id: '1063', title: 'Fire Hydrant', cat: 'BLOCKS', subCat: 'UTILITIES', desc: '00 FH - Fire Hydrant Assembly', file: '00 FH.DWG', path: 'J:\\LIB\\BR\\Palette Tools\\00 FH.DWG' },
-  { id: '50', title: '02 Flange', cat: 'BLOCKS', subCat: 'GENERAL', desc: '02 FLG - Standard Flange', file: '02 FLG.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\02 FLG.dwg' },
-  { id: '52', title: '02 Tee Flange', cat: 'BLOCKS', subCat: 'GENERAL', desc: '02 TEE FLG - Standard Tee', file: '02 TEE FLG.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\02 TEE FLG.dwg' },
-  { id: '925', title: 'Fire Truck', cat: 'BLOCKS', subCat: 'TRANSPORT', desc: 'Vehicle - Fire Truck Front View', file: 'VEHICLE TRUCK FIRE.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\VEHICLE TRUCK.dwg' },
-
-  // DETAILS
-  { id: '485', title: 'Title - Detail', cat: 'DETAILS', subCat: 'GENERAL', desc: 'Title - Detail/Section With Bubble - Not To Scale', file: 'TITLE DETAIL.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\TITLE DETAIL.dwg' },
-  { id: '31', title: 'Note Sheet', cat: 'DETAILS', subCat: 'GENERAL', desc: 'Sonoma County - Standard Note Sheet for Subdivisions', file: 'NOTE COUNTY.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\NOTE COUNTY.dwg' },
-  { id: '449', title: 'Section Angled', cat: 'DETAILS', subCat: 'GENERAL', desc: 'Section With Angle Indicator', file: 'SECTION ANGLED.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\SECTION ANGLED.dwg' },
-  { id: '1199', title: 'Yard Drain', cat: 'DETAILS', subCat: 'STORM', desc: 'SD - Yard Drain - Private', file: 'SD - Yard Drain.dwg', path: 'J:\\LIB\\BR\\SD - Yard Drain.dwg' },
-  { id: '1200', title: 'Conc Wall', cat: 'DETAILS', subCat: 'ROADWAY', desc: 'Wall - Concrete Construction Detail', file: 'Wall - Concrete.dwg', path: 'J:\\LIB\\BR\\Wall - Concrete.dwg' },
-  { id: '466', title: 'Earthwork Table', cat: 'DETAILS', subCat: 'GENERAL', desc: 'Legend - Earthwork Cut/Fill Table', file: 'LEGEND EARTHWORK.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\LEGEND EARTHWORK.dwg' },
-  { id: '800', title: 'Cover 11x17', cat: 'DETAILS', subCat: 'GENERAL', desc: 'B&R 11x17 - Cover Sheet Template', file: 'TB COVER BR 11x17.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\TB COVER BR 11x17.dwg' },
-
-  // SPECIFICATIONS
-  { id: 'spec-01', title: '00 72 00', cat: 'SPECIFICATIONS', subCat: 'GENERAL', desc: 'General Conditions - Standard Project Requirements', file: '00 72 00 General Conditions.docx', path: 'J:\\LIB\\SPECS\\00 72 00.docx' },
-  { id: 'spec-02', title: '31 00 00', cat: 'SPECIFICATIONS', subCat: 'SITEWORK', desc: 'Earthwork - Excavation and Fill', file: '31 00 00 Earthwork.docx', path: 'J:\\LIB\\SPECS\\31 00 00.docx' },
-  { id: 'spec-03', title: '33 40 00', cat: 'SPECIFICATIONS', subCat: 'UTILITIES', desc: 'Storm Drainage Utilities - Piping and Structures', file: '33 40 00 Storm Drainage.docx', path: 'J:\\LIB\\SPECS\\33 40 00.docx' },
-  { id: 'spec-04', title: '03 30 00', cat: 'SPECIFICATIONS', subCat: 'CONCRETE', desc: 'Cast-in-Place Concrete', file: '03 30 00 Concrete.docx', path: 'J:\\LIB\\SPECS\\03 30 00.docx' },
-  { id: 'spec-05', title: '33 30 00', cat: 'SPECIFICATIONS', subCat: 'UTILITIES', desc: 'Sanitary Sewerage Utilities', file: '33 30 00 Sanitary.docx', path: 'J:\\LIB\\SPECS\\33 30 00.docx' },
-  { id: 'spec-06', title: '31 10 00', cat: 'SPECIFICATIONS', subCat: 'SITEWORK', desc: 'Site Clearing', file: '31 10 00 Clearing.docx', path: 'J:\\LIB\\SPECS\\31 10 00.docx' },
-  { id: 'spec-07', title: '31 23 00', cat: 'SPECIFICATIONS', subCat: 'SITEWORK', desc: 'Excavation and Fill', file: '31 23 00 Excavation.docx', path: 'J:\\LIB\\SPECS\\31 23 00.docx' },
-];
-
-export const generateMockCards = (category: ElementType): StandardCard[] => {
-  // Filter the raw data by the requested category
-  // If the category in raw data matches the mapping, use it.
-  // If not, fall back to some generic generated ones if needed, but here we just filter.
-  
-  let categoryItems = RAW_CAD_DATA.filter(item => item.cat === category);
-
-  // If we don't have enough real items for a category in our small subset, 
-  // duplicate them slightly with different IDs to fill the grid for the prototype look.
-  if (categoryItems.length < 8) {
-      const extras = Array.from({ length: 8 - categoryItems.length }).map((_, i) => ({
-          ...categoryItems[i % categoryItems.length],
-          id: `${categoryItems[i % categoryItems.length].id}_copy_${i}`,
-          title: `${categoryItems[i % categoryItems.length].title} ${i + 2}`
-      }));
-      categoryItems = [...categoryItems, ...extras];
+  // --- LAYERS ---
+  if (category === ElementType.LAYERS) {
+     if (subCategory === 'EXISTING') {
+         // Dashed / Faded planes
+         return {
+             viewBox: "0 0 100 100",
+             paths: [
+                 { d: "M15,40 L55,40 L75,60 L35,60 Z", strokeWidth: 1.5, opacity: 0.5, fill: "none" },
+                 { d: "M15,60 L55,60 L75,80 L35,80 Z", strokeWidth: 1.5, opacity: 0.5, fill: "none" },
+                 { d: "M15,80 L55,80 L75,100 L35,100 Z", strokeWidth: 1.5, opacity: 0.5, fill: "none" }
+             ]
+         }
+     }
+     if (subCategory === 'PROPOSED') {
+         // Solid Bold Planes
+         return {
+             viewBox: "0 0 100 100",
+             paths: [
+                 { d: "M15,40 L55,40 L75,60 L35,60 Z", strokeWidth: 3, fill: "currentColor", opacity: 0.2 },
+                 { d: "M15,60 L55,60 L75,80 L35,80 Z", strokeWidth: 3, fill: "none" },
+                 { d: "M15,80 L55,80 L75,100 L35,100 Z", strokeWidth: 3, fill: "none" }
+             ]
+         }
+     }
+     // Default Layers
+     return {
+         viewBox: "0 0 100 100",
+         paths: [
+             { d: "M15,40 L55,40 L75,60 L35,60 Z", strokeWidth: 2 }, 
+             { d: "M15,60 L55,60 L75,80 L35,80 Z", strokeWidth: 2, opacity: 0.7 }, 
+             { d: "M15,80 L55,80 L75,100 L35,100 Z", strokeWidth: 2, opacity: 0.4 }, 
+             { d: "M75,60 L75,80 M35,60 L35,80", strokeWidth: 1, opacity: 0.3 } 
+         ]
+     }
   }
 
-  return categoryItems.map((item) => ({
-    id: item.id,
-    title: item.title,
-    category: category,
-    subCategory: item.subCat || 'GENERAL',
-    isFavorite: Math.random() > 0.8, // Random favorite status
-    isNew: Math.random() > 0.7, // Random "New" status
-    description: item.desc,
-    filename: item.file,
-    fullPath: item.path,
-    stats: {
-      usage: Math.floor(Math.random() * 100), // Mock usage stat
-      complexity: Math.floor(Math.random() * 10) // Mock complexity stat
-    }
-  }));
-};
+  // --- SPECIFICATIONS ---
+  if (category === ElementType.SPECIFICATIONS) {
+      if (subCategory === 'SITEWORK') {
+          // Earth / Terrain icon on Doc
+          return {
+              viewBox: "0 0 100 100",
+              paths: [
+                { d: "M25,10 L75,10 L75,90 L25,90 Z", strokeWidth: 2 }, 
+                { d: "M25,70 Q35,60 50,75 Q65,90 75,80", strokeWidth: 2, fill: "none" }, // Terrain curve
+                { d: "M35,25 L65,25", strokeWidth: 2 }, // Header
+                { d: "M35,35 L65,35 M35,45 L65,45", strokeWidth: 1, opacity: 0.5 }
+              ]
+          }
+      }
+      if (subCategory === 'CONCRETE') {
+           // Concrete Hatch on Doc
+           return {
+               viewBox: "0 0 100 100",
+               paths: [
+                 { d: "M25,10 L75,10 L75,90 L25,90 Z", strokeWidth: 2 },
+                 { d: "M35,60 L40,65 L30,65 Z M55,75 L60,80 L50,80 Z", fill: "currentColor" }, // Triangles
+                 { d: "M35,25 L65,25", strokeWidth: 2 }
+               ]
+           }
+      }
+      // Default Spec
+      return {
+          viewBox: "0 0 100 100",
+          paths: [
+            { d: "M25,10 L75,10 L75,90 L25,90 Z", strokeWidth: 2 },
+            { d: "M35,25 L65,25", strokeWidth: 2 },
+            { d: "M35,35 L65,35 M35,45 L65,45 M35,55 L65,55 M35,65 L55,65", strokeWidth: 1, opacity: 0.5 },
+            { d: "M60,75 L70,85 L70,75 Z", fill: "currentColor", opacity: 0.3 }
+          ]
+      }
+  }
+
+  // --- MACROS ---
+  if (category === ElementType.MACROS) {
+      if (subCategory === 'TOOLS') {
+          // Wrench/Tool icon
+          return {
+              viewBox: "0 0 100 100",
+              paths: [
+                  { d: "M30,30 L70,70", strokeWidth: 4 },
+                  { d: "M25,25 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0", strokeWidth: 2 },
+                  { d: "M75,75 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0", strokeWidth: 2 }
+              ]
+          }
+      }
+  }
+
+  // --- TREES & VEGETATION ---
+  if (titleLower.includes('tree') || (subCategory === 'LANDSCAPE' && (titleLower.includes('save') || titleLower.includes('remove')))) {
+      const isRemove = titleLower.includes('remove');
+      return {
+          viewBox: "0 0 100 100",
+          paths: [
+              // Organic canopy shape (approximate with polygon)
+              { d: "M50,10 Q65,10 75,20 Q90,25 90,50 Q90,75 75,85 Q60,95 50,90 Q35,95 25,85 Q10,75 10,50 Q10,25 25,20 Q35,10 50,10 Z", strokeWidth: 2, fill: isRemove ? 'none' : 'currentColor', opacity: isRemove ? 1 : 0.1 }, 
+              // Trunk
+              { d: "M50,50 L50,50", strokeWidth: 6 },
+              // Branches
+              { d: "M50,50 L25,25 M50,50 L75,25 M50,50 L75,75 M50,50 L25,75", strokeWidth: 1.5 },
+              // X for Remove
+              ...(isRemove ? [{ d: "M20,20 L80,80 M80,20 L20,80", strokeWidth: 3, opacity: 0.8 }] : [])
+          ]
+      };
+  }
+
+  // --- VEHICLES ---
+  if (titleLower.includes('vehicle') || titleLower.includes('truck')) {
+      if (titleLower.includes('fire')) {
+        // Fire Truck (Longer, ladders)
+        return {
+            viewBox: "0 0 100 100",
+            paths: [
+                { d: "M25,10 L75,10 L75,90 L25,90 Z", strokeWidth: 2 }, // Body
+                { d: "M25,25 L75,25", strokeWidth: 1 }, // Cab sep
+                { d: "M30,30 L40,80 M60,30 L70,80", strokeWidth: 1 }, // Ladders
+                { d: "M30,35 L70,35 M30,45 L70,45 M30,55 L70,55 M30,65 L70,65", strokeWidth: 1, opacity: 0.5 }, // Rungs
+                { d: "M20,20 L25,20 M75,20 L80,20 M20,80 L25,80 M75,80 L80,80", strokeWidth: 3 } // Mirrors/Lights
+            ]
+        }
+      }
+      // Standard Car
+      return {
+          viewBox: "0 0 100 100",
+          paths: [
+              { d: "M30,15 L70,15 L75,30 L75,80 L70,90 L30,90 L25,80 L25,30 Z", strokeWidth: 2 }, // Body
+              { d: "M30,35 L70,35 L70,60 L30,60 Z", opacity: 0.5 }, // Roof/Glass
+              { d: "M20,25 L30,25 M70,25 L80,25 M20,75 L30,75 M70,75 L80,75", strokeWidth: 3 } // Wheels
+          ]
+      }
+  }
+
+  // --- HYDRANT ---
+  if (titleLower.includes('hydrant') || titleLower.includes('fh')) {
+      return {
+          viewBox: "0 0 100 100",
+          paths: [
+              { d: "M50,50 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0", strokeWidth: 2 }, // Main Body
+              { d: "M30,50 L10,50 M70,50 L90,50 M50,30 L50,10", strokeWidth: 3 }, // Nozzles
+              { d: "M5,45 L15,45 L15,55 L5,55 Z M85,45 L95,45 L95,55 L85,55 Z", strokeWidth: 1 }, // Caps
+              { d: "M50,50 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0", opacity: 0.5 } // Center bolt
+          ]
+      }
+  }
+
+  // --- PIPING / FLANGES ---
+  if (titleLower.includes('flg') || titleLower.includes('flange')) {
+     if (titleLower.includes('tee')) {
+         // Tee
+         return {
+             viewBox: "0 0 100 100",
+             paths: [
+                 { d: "M10,35 L90,35 L90,65 L65,65 L65,90 L35,90 L35,65 L10,65 Z", strokeWidth: 2 }, // Tee Body
+                 { d: "M10,35 L15,65 M90,35 L85,65 M35,90 L65,90", strokeWidth: 1, opacity: 0.5 }, // Flange lines
+                 { d: "M50,35 L50,65 M35,50 L65,50", opacity: 0.3 } // Centerlines
+             ]
+         }
+     }
+     // Standard Flange
+     return {
+         viewBox: "0 0 100 100",
+         paths: [
+             { d: "M50,50 m-40,0 a40,40 0 1,0 80,0 a40,40 0 1,0 -80,0", strokeWidth: 2 }, // Outer
+             { d: "M50,50 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0", strokeWidth: 2 }, // Inner Pipe
+             // Bolts (simplified)
+             { d: "M50,15 L50,20 M50,80 L50,85 M15,50 L20,50 M80,50 L85,50 M25,25 L30,30 M70,70 L75,75 M25,75 L30,70 M70,25 L75,30", strokeWidth: 3 }
+         ]
+     }
+  }
+
+  // --- ARROWS ---
+  if (category === ElementType.SYMBOLS || category === ElementType.MACROS) {
+      if (titleLower.includes('north')) {
+          return {
+              viewBox: "0 0 100 100",
+              paths: [
+                  { d: "M50,10 L65,50 L50,90 L35,50 Z", strokeWidth: 2 }, // Main Diamond
+                  { d: "M50,10 L50,90", strokeWidth: 1 }, // Vertical Split
+                  { d: "M50,10 L65,50 L50,50 Z", fill: "currentColor" }, // Fill half
+                  { d: "M40,40 L60,40 M50,30 L50,40", strokeWidth: 1, opacity: 0.5 } // N text hint
+              ]
+          }
+      }
+      if (titleLower.includes('arrow')) {
+          return {
+              viewBox: "0 0 100 100",
+              paths: [
+                  { d: "M10,50 L80,50", strokeWidth: 2 }, // Shaft
+                  { d: "M60,30 L90,50 L60,70", strokeWidth: 2 }, // Head
+                  { d: "M60,30 L60,70", strokeWidth: 1, opacity: 0.5 } // Closed head option
+              ]
+          }
+      }
+  }
+
+  // --- DETAILS / SECTIONS ---
+  if (category === ElementType.DETAILS) {
+      if (titleLower.includes('wall')) {
+          return {
+              viewBox: "0 0 100 100",
+              paths: [
+                  { d: "M10,80 L90,80", strokeWidth: 2 }, // Grade
+                  { d: "M30,80 L30,20 L60,20 L60,80", strokeWidth: 2 }, // Wall outline
+                  { d: "M30,80 L40,90 L50,90 L60,80", strokeWidth: 1, opacity: 0.6 }, // Footing hint
+                  // Concrete Hatch (Triangles)
+                  { d: "M35,30 L37,34 L33,34 Z M50,50 L52,54 L48,54 Z M40,70 L42,74 L38,74 Z", opacity: 0.5, fill: "currentColor" }
+              ]
+          }
+      }
+      // Generic Section
+      return {
+          viewBox: "0 0 100 100",
+          paths: [
+              { d: "M10,80 L90,80", strokeWidth: 3 }, // Heavy Ground Line
+              { d: "M20,80 L20,20 L80,20 L80,80", strokeWidth: 1.5 }, // Box
+              { d: "M20,20 L80,80 M80,20 L20,80", opacity: 0.2 } // X
+          ]
+      }
+  }
+  
+  // Fallback: Generic Cube with Dimension Lines
+  return {
+      viewBox: "0 0 100 100",
+      paths: [
+          { d: "M25,35 L75,35 L75,85 L25,85 Z", strokeWidth: 2 }, // Box
+          { d: "M25,35 L75,85 M75,35 L25,85", opacity: 0.2 }, // Center
+          { d: "M20,35 L20,85", strokeWidth: 1 }, // Dim Line Left
+          { d: "M15,40 L20,35 L25,40 M15,80 L20,85 L25,80", strokeWidth: 1 } // Arrows
+      ]
+  };
+}

@@ -1,0 +1,252 @@
+
+import React, { useState } from 'react';
+import { ToolItem, ToolTier } from '../types';
+import { Wrench, Hash, FileCode, Search, Map, Database, Calculator, Network, Eye, FileText, Copy, Check, AlertTriangle, Zap, Layers, ShieldCheck, Terminal } from 'lucide-react';
+
+// --- MOCK DATA FOR TOOLS ---
+const TOOLS_DB: ToolItem[] = [
+  { id: 'layer-gen', title: 'Layer Name Generator', description: 'Build standard layer names from dropdowns (Discipline → Category → Type)', tier: ToolTier.TIER_1, iconName: 'Layers', status: 'LIVE', isWidget: true },
+  { id: 'layer-val', title: 'Layer Name Validator', description: 'Paste layer names to catch errors before importing DXF.', tier: ToolTier.TIER_1, iconName: 'ShieldCheck', status: 'BETA' },
+  { id: 'coord-conv', title: 'Coordinate Converter', description: 'Convert between NAD83, WGS84, and local grid systems.', tier: ToolTier.TIER_1, iconName: 'Map', status: 'LIVE' },
+  { id: 'surv-code', title: 'Survey Code Decoder', description: 'Interpret survey point descriptions without guessing.', tier: ToolTier.TIER_1, iconName: 'Hash', status: 'LIVE' },
+  { id: 'dxf-map', title: 'DXF Layer Mapper', description: 'Map messy client DXF layers to standard ACAD-GIS layers.', tier: ToolTier.TIER_2, iconName: 'FileCode', status: 'PLANNED' },
+  { id: 'pipe-calc', title: 'Pipe Sizing Calculator', description: 'Calculate diameter for flow rate/slope (Gravity/Pressure).', tier: ToolTier.TIER_2, iconName: 'Calculator', status: 'PLANNED' },
+  { id: 'net-diag', title: 'Network Diagram Gen', description: 'Convert utility networks into flow diagrams.', tier: ToolTier.TIER_2, iconName: 'Network', status: 'PLANNED' },
+  { id: 'ai-search', title: 'CAD Doc Search', description: 'Natural language search across all project data.', tier: ToolTier.TIER_3, iconName: 'Zap', status: 'PLANNED' },
+];
+
+const IconMap: Record<string, React.ElementType> = {
+  'Layers': Layers,
+  'ShieldCheck': ShieldCheck,
+  'Map': Map,
+  'Hash': Hash,
+  'FileCode': FileCode,
+  'Calculator': Calculator,
+  'Network': Network,
+  'Zap': Zap,
+  'Terminal': Terminal
+};
+
+export const ToolsModule: React.FC = () => {
+  const [copied, setCopied] = useState(false);
+
+  // --- LAYER GENERATOR STATE ---
+  const [layerState, setLayerState] = useState({
+      discipline: 'CIV',
+      category: 'UTIL',
+      element: 'STRM',
+      modifier: 'MAIN',
+      status: 'PROP',
+      type: 'LIN'
+  });
+
+  const generatedLayerName = `${layerState.discipline}-${layerState.category}-${layerState.element}-${layerState.modifier}-${layerState.status}-${layerState.type}`;
+
+  const handleCopy = () => {
+      navigator.clipboard.writeText(generatedLayerName);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Dropdown Options
+  const OPTIONS = {
+      discipline: ['CIV', 'SUR', 'LND', 'GEN', 'GIS'],
+      category: ['UTIL', 'TRAN', 'ENV', 'CTRL', 'BNDY', 'ANNO'],
+      element: ['STRM', 'SANI', 'WATR', 'FIRE', 'PVMT', 'TREE', 'GRAD', 'VEG'],
+      modifier: ['MAIN', 'LATR', 'FITT', 'MH', 'VALV', 'TEXT', 'DIMS', 'P-LINE'],
+      status: ['PROP', 'EXST', 'DEMO', 'FUTR', 'TEMP'],
+      type: ['LIN', 'BLK', 'PNT', 'PAT', 'TXT', 'SHT', 'DTL']
+  };
+
+  const essentials = TOOLS_DB.filter(t => t.tier === ToolTier.TIER_1 && !t.isWidget);
+  const powerTools = TOOLS_DB.filter(t => t.tier === ToolTier.TIER_2);
+  const advanced = TOOLS_DB.filter(t => t.tier === ToolTier.TIER_3);
+
+  return (
+    <div className="flex-1 flex flex-col h-full bg-[var(--bg-main)] overflow-y-auto custom-scrollbar relative">
+       {/* Background Texture */}
+       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+       
+       <div className="relative z-10 p-8 max-w-[1600px] mx-auto w-full">
+          
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+              <div>
+                  <div className="flex items-center gap-2 mb-1">
+                      <Wrench size={16} className="text-amber-500" />
+                      <span className="text-[10px] font-mono text-amber-500 uppercase tracking-widest">Engineering Utilities</span>
+                  </div>
+                  <h1 className="text-3xl font-bold text-[var(--text-main)] tracking-tight">Micro-Apps & Tools</h1>
+              </div>
+              <div className="flex gap-2">
+                 <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded text-amber-500 text-xs font-bold uppercase tracking-wider">
+                    {TOOLS_DB.filter(t => t.status === 'LIVE').length} Active
+                 </div>
+                 <div className="px-3 py-1 bg-neutral-800 border border-neutral-700 rounded text-neutral-400 text-xs font-bold uppercase tracking-wider">
+                    {TOOLS_DB.filter(t => t.status === 'PLANNED').length} Planned
+                 </div>
+              </div>
+          </div>
+
+          {/* --- FEATURED WIDGET: LAYER NAME GENERATOR --- */}
+          <div className="mb-12">
+             <div className="bg-[#18181b] border border-[var(--border-main)] rounded-sm shadow-2xl overflow-hidden">
+                 {/* Widget Header */}
+                 <div className="bg-[#121212] border-b border-white/5 p-4 flex justify-between items-center relative overflow-hidden">
+                     <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                     <div>
+                         <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                             <Layers className="text-amber-500" size={20} /> Layer Name Generator
+                         </h2>
+                         <p className="text-xs text-neutral-500 mt-1">Generate compliant UCCS layer names instantly.</p>
+                     </div>
+                     <div className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20 rounded">
+                         Ready
+                     </div>
+                 </div>
+
+                 {/* Widget Body */}
+                 <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                     {/* Controls */}
+                     <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {Object.entries(OPTIONS).map(([key, options]) => (
+                            <div key={key} className="group">
+                                <label className="block text-[10px] font-mono text-neutral-500 uppercase tracking-wider mb-1.5 ml-1 group-hover:text-amber-500 transition-colors">
+                                    {key}
+                                </label>
+                                <div className="relative">
+                                    <select 
+                                        value={(layerState as any)[key]}
+                                        onChange={(e) => setLayerState({...layerState, [key]: e.target.value})}
+                                        className="w-full appearance-none bg-black/40 border border-white/10 rounded p-3 text-sm font-mono text-white focus:outline-none focus:border-amber-500/50 focus:bg-black/60 transition-all cursor-pointer hover:border-white/20"
+                                    >
+                                        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                                        <Terminal size={12} className="text-neutral-400" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                     </div>
+
+                     {/* Output / Preview */}
+                     <div className="lg:col-span-4 flex flex-col justify-center">
+                         <div className="bg-[#09090b] border border-dashed border-white/20 rounded-lg p-6 flex flex-col items-center text-center relative group">
+                             <div className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2">Generated Layer Key</div>
+                             
+                             <div className="text-2xl md:text-3xl font-mono font-bold text-white tracking-tight break-all">
+                                 {generatedLayerName}
+                             </div>
+                             
+                             <div className="mt-6 w-full">
+                                 <button 
+                                    onClick={handleCopy}
+                                    className={`
+                                        w-full py-3 px-4 rounded font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all
+                                        ${copied 
+                                            ? 'bg-emerald-500 text-black hover:bg-emerald-400' 
+                                            : 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)]'}
+                                    `}
+                                 >
+                                     {copied ? <Check size={16}/> : <Copy size={16}/>}
+                                     {copied ? 'Copied to Clipboard' : 'Copy Layer Name'}
+                                 </button>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+          </div>
+
+
+          {/* --- TOOL GRID --- */}
+          <div className="space-y-12">
+             
+             {/* TIER 1 */}
+             <div>
+                 <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Tier 1: Essentials</h3>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                     {essentials.map(tool => {
+                         const Icon = IconMap[tool.iconName] || Wrench;
+                         return (
+                             <div key={tool.id} className="bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm hover:border-emerald-500/50 hover:bg-[#202023] transition-all group cursor-pointer relative overflow-hidden">
+                                 <div className="flex justify-between items-start mb-4">
+                                     <div className="p-3 bg-[#09090b] rounded border border-white/10 text-emerald-500 group-hover:text-white group-hover:bg-emerald-500 transition-colors">
+                                         <Icon size={20} />
+                                     </div>
+                                     {tool.status === 'BETA' && <span className="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded border border-yellow-500/20">BETA</span>}
+                                 </div>
+                                 <h4 className="text-sm font-bold text-white mb-2">{tool.title}</h4>
+                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 h-10 overflow-hidden">{tool.description}</p>
+                                 <div className="flex items-center text-[10px] font-bold text-neutral-600 group-hover:text-emerald-400 transition-colors uppercase tracking-wider">
+                                     Launch Tool <Terminal size={10} className="ml-1" />
+                                 </div>
+                             </div>
+                         );
+                     })}
+                 </div>
+             </div>
+
+             {/* TIER 2 */}
+             <div>
+                 <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Tier 2: Power Tools</h3>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                     {powerTools.map(tool => {
+                         const Icon = IconMap[tool.iconName] || Wrench;
+                         return (
+                             <div key={tool.id} className="bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm hover:border-blue-500/50 hover:bg-[#202023] transition-all group cursor-pointer opacity-80 hover:opacity-100">
+                                 <div className="flex justify-between items-start mb-4">
+                                     <div className="p-3 bg-[#09090b] rounded border border-white/10 text-blue-500 group-hover:text-white group-hover:bg-blue-500 transition-colors">
+                                         <Icon size={20} />
+                                     </div>
+                                     <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/5">PLANNED</span>
+                                 </div>
+                                 <h4 className="text-sm font-bold text-white mb-2">{tool.title}</h4>
+                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 h-10 overflow-hidden">{tool.description}</p>
+                             </div>
+                         );
+                     })}
+                 </div>
+             </div>
+             
+             {/* TIER 3 */}
+             <div>
+                 <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Tier 3: AI & Advanced</h3>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                     {advanced.map(tool => {
+                         const Icon = IconMap[tool.iconName] || Wrench;
+                         return (
+                             <div key={tool.id} className="bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm hover:border-purple-500/50 hover:bg-[#202023] transition-all group cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden">
+                                 {/* Shine effect */}
+                                 <div className="absolute -right-10 -top-10 w-20 h-20 bg-purple-500/10 blur-2xl rounded-full group-hover:bg-purple-500/20 transition-all"></div>
+                                 
+                                 <div className="flex justify-between items-start mb-4 relative z-10">
+                                     <div className="p-3 bg-[#09090b] rounded border border-white/10 text-purple-500 group-hover:text-white group-hover:bg-purple-500 transition-colors">
+                                         <Icon size={20} />
+                                     </div>
+                                     <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/5">PLANNED</span>
+                                 </div>
+                                 <h4 className="text-sm font-bold text-white mb-2 relative z-10">{tool.title}</h4>
+                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 h-10 overflow-hidden relative z-10">{tool.description}</p>
+                             </div>
+                         );
+                     })}
+                 </div>
+             </div>
+
+          </div>
+
+       </div>
+    </div>
+  );
+};

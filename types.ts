@@ -1,3 +1,4 @@
+
 export enum ElementType {
   LAYERS = 'LAYERS',
   MACROS = 'MACROS',
@@ -18,6 +19,25 @@ export interface ThemeConfig {
   iconName: string;
 }
 
+export interface SvgNode {
+  tag: string;
+  attrs?: Record<string, string | number>;
+  children?: SvgNode[];
+  content?: string;
+}
+
+export interface RecursiveCadVector {
+  viewBox: string;
+  elements: SvgNode[];
+}
+
+// Helper to unify the types for usage (supporting legacy paths or new nodes)
+export interface CadVector {
+  viewBox: string;
+  paths?: { d: string; opacity?: number; strokeWidth?: number; fill?: string }[];
+  elements?: SvgNode[];
+}
+
 export interface StandardCard {
   id: string;
   title: string;
@@ -28,10 +48,12 @@ export interface StandardCard {
   isNew: boolean;
   filename?: string;
   fullPath?: string;
+  previewSvg?: CadVector;
   stats: {
     usage: number; // 0-100
     complexity: number; // 0-10
   };
+  lastModified?: number;
 }
 
 export interface NavButton {
@@ -42,3 +64,47 @@ export interface NavButton {
 }
 
 export type SidebarFilter = 'ALL' | 'NEW' | 'FAVORITES' | 'FREQUENT';
+
+export interface UserPreferences {
+  showGrid: boolean;
+  highContrast: boolean;
+  defaultExport: 'DWG' | 'PDF' | 'DXF';
+  notifications: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  title: string;
+  avatarUrl?: string;
+  level: number; // Gamification level (1-10)
+  preferences: UserPreferences;
+  recentHistory: string[]; // IDs of recently viewed cards
+  // Robust Profile Fields
+  department?: string;
+  email?: string;
+  phone?: string;
+  startDate?: string;
+  status?: string;
+  expertise?: string[];
+  bio?: string;
+  quote?: string;
+}
+
+// --- TOOLS MODULE TYPES ---
+
+export enum ToolTier {
+  TIER_1 = 'ESSENTIALS', // Do First
+  TIER_2 = 'POWER_TOOLS', // Do Second
+  TIER_3 = 'ADVANCED' // Do Later
+}
+
+export interface ToolItem {
+  id: string;
+  title: string;
+  description: string;
+  tier: ToolTier;
+  iconName: string; // Lucide icon name
+  status: 'LIVE' | 'BETA' | 'PLANNED';
+  isWidget?: boolean; // If true, renders inline
+}

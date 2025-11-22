@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { NavButton, ThemeConfig, SidebarFilter } from '../types';
-import { Settings, Battery, Zap, Hexagon, Layers, Terminal, TriangleAlert, Cuboid, Ruler, Book, Activity, Database, Server } from 'lucide-react';
+import { Settings, Battery, Zap, Hexagon, Layers, Terminal, TriangleAlert, Cuboid, Ruler, Book, Activity, Command, ChevronRight, Database } from 'lucide-react';
 
 interface SidebarProps {
   buttons: NavButton[];
@@ -11,7 +12,6 @@ interface SidebarProps {
   totalCount: number;
 }
 
-// Map string icon names from constants to Lucide components
 const ThemeIconMap: Record<string, React.ElementType> = {
   'Layers': Layers,
   'Terminal': Terminal,
@@ -22,38 +22,39 @@ const ThemeIconMap: Record<string, React.ElementType> = {
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({ buttons, theme, activeFilter, onFilterChange, filteredCount, totalCount }) => {
-  // Determine which icon to use based on the active theme
   const ThemeIcon = ThemeIconMap[theme.iconName] || Hexagon;
 
   return (
-    <div className={`w-72 flex-shrink-0 border-r-4 border-black flex flex-col relative transition-colors duration-500 ${theme.baseColor} shadow-[4px_0px_10px_rgba(0,0,0,0.3)] z-20`}>
+    <div className="w-64 flex-shrink-0 bg-[#0f0f12] border-r border-white/10 flex flex-col relative z-20 shadow-2xl">
       
-      {/* Panel Texture Overlay */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundSize: '20px 20px', backgroundImage: theme.pattern }}></div>
-      
-      {/* Header: Theme Indicator */}
-      <div className="p-6 border-b-4 border-black bg-black/10 backdrop-blur-sm relative">
-        {/* Decorative Screws */}
-        <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-neutral-800 border border-black flex items-center justify-center shadow-inner"><div className="w-full h-[1px] bg-black rotate-45"></div></div>
-        <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-neutral-800 border border-black flex items-center justify-center shadow-inner"><div className="w-full h-[1px] bg-black rotate-45"></div></div>
+      {/* Header: System Indicator */}
+      <div className="p-6 border-b border-white/10 bg-[#0f0f12] relative overflow-hidden group">
+        {/* Accent Glow */}
+        <div className={`absolute top-0 left-0 w-1 h-full ${theme.baseColor}`}></div>
+        <div className={`absolute top-0 left-0 w-full h-[1px] ${theme.baseColor} opacity-50`}></div>
 
-        <div className="flex items-center justify-between mb-2">
-           <span className="font-bold text-xs font-mono tracking-widest text-black/60">SYS.PANEL_01</span>
-           <div className="flex gap-1">
-             <div className="w-2 h-2 rounded-full bg-black animate-pulse"></div>
-             <div className="w-2 h-2 rounded-full bg-black/30"></div>
+        <div className="flex items-center justify-between mb-3">
+           <div className="flex items-center gap-2 text-neutral-500">
+             <Command size={14} />
+             <span className="font-mono text-[10px] font-bold tracking-widest uppercase">System.Root</span>
            </div>
+           <div className={`w-2 h-2 rounded-full ${theme.baseColor} shadow-[0_0_8px_rgba(255,255,255,0.4)] animate-pulse`}></div>
         </div>
-        <h2 className={`text-4xl font-black uppercase tracking-tighter text-black drop-shadow-sm`}>
-          {theme.label}
-        </h2>
-        <div className="w-full h-2 bg-black/20 mt-2 rounded-full overflow-hidden border-2 border-black">
-          <div className="h-full bg-white animate-scan w-1/2"></div>
+        
+        <div className="flex items-center gap-3 z-10 relative">
+          <div className={`p-2 rounded-md bg-white/5 border border-white/10 ${theme.baseColor.replace('bg-', 'text-')}`}>
+             <ThemeIcon size={24} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight leading-none">{theme.label}</h2>
+            <span className={`text-[10px] font-mono ${theme.baseColor.replace('bg-', 'text-')} opacity-70 uppercase tracking-wider`}>Module Active</span>
+          </div>
         </div>
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto z-10">
+      <div className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+        <div className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest px-3 mb-2">Filters</div>
         {buttons.map((btn) => {
           const isActive = activeFilter === btn.action;
           
@@ -62,82 +63,58 @@ export const Sidebar: React.FC<SidebarProps> = ({ buttons, theme, activeFilter, 
               key={btn.id}
               onClick={() => onFilterChange(btn.action)}
               className={`
-                relative w-full p-3 font-bold text-sm uppercase transition-all duration-100
-                border-4 border-black bg-white
-                text-black
-                flex items-center justify-between group
-                ${btn.isSpecial ? 'bg-red-500 text-white hover:bg-red-400' : 'hover:bg-neutral-100'}
-                ${isActive ? 'translate-x-1 translate-y-1 shadow-none border-l-8 border-t-8 bg-neutral-200' : 'hover:translate-x-1 hover:translate-y-[-4px] hover:shadow-hard shadow-hard-sm'}
+                relative w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 group
+                flex items-center justify-between
+                ${isActive 
+                  ? 'bg-white/10 text-white shadow-inner border border-white/5' 
+                  : 'text-neutral-400 hover:bg-white/5 hover:text-white border border-transparent'}
               `}
             >
               <div className="flex items-center gap-3">
-                {/* Status LED */}
-                {!btn.isSpecial && (
-                  <div className={`
-                    w-3 h-3 rounded-full border border-black transition-all duration-300
-                    ${isActive ? `bg-${theme.accentColor.replace('bg-', '')} shadow-[0_0_8px_rgba(255,255,255,0.8)]` : 'bg-neutral-300'}
-                  `}></div>
+                {btn.isSpecial ? (
+                    <Zap size={16} className={`${isActive ? 'text-yellow-400 fill-yellow-400' : 'text-neutral-500 group-hover:text-yellow-400'} transition-colors`} />
+                ) : (
+                    <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${isActive ? theme.baseColor : 'bg-neutral-700 group-hover:bg-neutral-500'}`}></div>
                 )}
-                <span className="z-10 relative">{btn.label}</span>
+                <span>{btn.label}</span>
               </div>
               
-              {btn.isSpecial && <Zap size={16} className="fill-yellow-300 text-black animate-pulse" />}
-              {!btn.isSpecial && <ThemeIcon size={16} className={`text-black/20 group-hover:text-black/50 transition-colors`} />}
+              {isActive && <ChevronRight size={14} className="text-white/50" />}
             </button>
           );
         })}
       </div>
 
-      {/* Decorative "Gadget" / System Diagnostics Area */}
-      <div className="p-4 border-t-4 border-black bg-black/5 relative">
-         {/* Screws */}
-         <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-neutral-400 border border-black"></div>
-         <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-neutral-400 border border-black"></div>
-
-         <div className="bg-black p-4 rounded-sm border-4 border-neutral-700 shadow-[inset_0_0_10px_rgba(0,0,0,1)] relative overflow-hidden">
-            {/* CRT Scanline Effect */}
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%] pointer-events-none"></div>
+      {/* System Stats / Footer */}
+      <div className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-md">
+         <div className="bg-[#18181b] rounded border border-white/5 p-3 relative overflow-hidden">
             
-            <div className="flex justify-between text-green-500 mb-3 border-b border-green-900/50 pb-1">
-               <div className="flex items-center gap-2">
-                 <Activity size={14} className="animate-pulse" />
-                 <span className="font-mono text-[10px] font-bold">SYS_MONITOR</span>
-               </div>
-               <Settings size={14} className="animate-spin-slow text-green-700" />
-            </div>
-            
-            <div className="font-mono text-xs text-green-400 space-y-1">
-              <div className="flex justify-between">
-                <span className="text-green-700">></span> 
-                <span className="opacity-70">MODE:</span>
-                <span className="font-bold text-white">{activeFilter}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-green-700">></span> 
-                <span className="opacity-70">MODULES:</span>
-                <span className="font-bold text-white">{filteredCount.toString().padStart(3, '0')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-green-700">></span> 
-                <span className="opacity-70">TOTAL:</span>
-                <span className="font-bold text-white">{totalCount.toString().padStart(3, '0')}</span>
-              </div>
+            <div className="flex justify-between items-end mb-2">
+               <span className="text-[10px] text-neutral-500 font-mono uppercase">Memory Load</span>
+               <span className={`text-xs font-mono font-bold ${theme.baseColor.replace('bg-', 'text-')}`}>
+                 {Math.round((filteredCount / Math.max(totalCount, 1)) * 100)}%
+               </span>
             </div>
 
-            {/* Visual Bar Graph */}
-            <div className="mt-3 flex gap-0.5 h-4 items-end">
-               {Array.from({ length: 10 }).map((_, i) => {
-                 // Simple fake visualization based on count
-                 const height = Math.max(20, (filteredCount * (i + 1) * 13) % 100); 
-                 return (
-                   <div key={i} className="flex-1 bg-green-900/40 relative">
-                      <div 
-                        className="absolute bottom-0 left-0 w-full bg-green-500 transition-all duration-500" 
-                        style={{ height: `${height}%` }}
-                      ></div>
-                   </div>
-                 )
-               })}
+            {/* Progress Bar */}
+            <div className="w-full h-1 bg-neutral-800 rounded-full overflow-hidden">
+               <div 
+                 className={`h-full ${theme.baseColor} transition-all duration-500`} 
+                 style={{ width: `${(filteredCount / Math.max(totalCount, 1)) * 100}%` }}
+               ></div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-mono text-neutral-400">
+              <div>
+                 <span className="block text-neutral-600">VISIBLE</span>
+                 <span className="text-white">{filteredCount}</span>
+              </div>
+              <div className="text-right">
+                 <span className="block text-neutral-600 flex items-center justify-end gap-1">
+                    DB: CONNECTED <Database size={8} />
+                 </span>
+                 <span className="text-white">{totalCount}</span>
+              </div>
             </div>
          </div>
       </div>

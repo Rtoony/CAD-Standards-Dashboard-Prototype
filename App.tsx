@@ -1,274 +1,513 @@
+
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TradingCard } from './components/TradingCard';
-import { THEMES, SIDEBAR_BUTTONS, SUB_CATEGORIES, generateMockCards } from './constants';
-import { ElementType, SidebarFilter } from './types';
-import { X, Search, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { GlobalNav } from './components/GlobalNav';
+import { UserPanel } from './components/UserPanel';
+import { HomeModule } from './components/HomeModule';
+import { ToolsModule } from './components/ToolsModule';
+import { THEMES, SIDEBAR_BUTTONS, SUB_CATEGORIES } from './constants';
+import { DataService } from './services/dataService';
+import { ElementType, SidebarFilter, UserProfile, UserPreferences, StandardCard } from './types';
+import { X, Search, ChevronDown, Filter, LayoutGrid, List, User as UserIcon, Loader2, Terminal, Star } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState<ElementType>(ElementType.LAYERS);
-  const [activeSubCategory, setActiveSubCategory] = useState<string>('ALL');
+  // --- Theme Management ---
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // --- User State ---
+  const [currentUser, setCurrentUser] = useState<UserProfile>({
+    id: 'SUR-007',
+    name: 'Sir R. Toony',
+    title: 'Senior Lead Surveyor',
+    department: 'Surveying & Geomatics',
+    email: 'R.Toony@acmecivilsurvey.com',
+    phone: 'Ext. 1776',
+    startDate: 'Jan 12, 1988',
+    status: 'Active, Grumbling',
+    level: 10, // The Legend
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Toony&clothing=graphicShirt&accessories=eyepatch&top=curlyShort&hairColor=black&facialHair=beardMedium&skinColor=tanned',
+    bio: "Sir R. Toony is the bedrock of our Geomatics department—a man carved from granite and fueled by questionable coffee. He has been mapping this landscape since before half the current staff were born.",
+    quote: "If you need a field problem solved, bring me a fresh mug.",
+    expertise: [
+        "Boundary Surveys (The Master)",
+        "ALTA/NSPS Precision",
+        "Historical Research",
+        "Intimidation"
+    ],
+    recentHistory: ['SUR-BM-102', 'TREE SAVE.dwg', '00 FH.DWG'],
+    preferences: {
+        showGrid: true,
+        highContrast: false,
+        defaultExport: 'DWG',
+        notifications: false // "Don't bother me"
+    }
+  });
+  const [showUserPanel, setShowUserPanel] = useState(false);
+  const [activeModule, setActiveModule] = useState('library');
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+
+  // --- App State ---
+  const [activeCategory, setActiveCategory] = useState<ElementType>(ElementType.LAYERS); 
+  // activeSubCategory can be null if a sidebar filter is exclusive
+  const [activeSubCategory, setActiveSubCategory] = useState<string | null>('ALL');
   const [sidebarFilter, setSidebarFilter] = useState<SidebarFilter>('ALL');
   const [zoomedCardId, setZoomedCardId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortMode, setSortMode] = useState<'NAME_ASC' | 'NAME_DESC' | 'USAGE_DESC' | 'USAGE_ASC'>('NAME_ASC');
+  const [sortMode, setSortMode] = useState<'NAME_ASC' | 'NAME_DESC' | 'USAGE_DESC' | 'USAGE_ASC' | 'DATE_ASC' | 'DATE_DESC'>('NAME_ASC');
   
-  // Use state for cards to support favorite toggling
-  // Initial load from constants
-  const [allCards, setAllCards] = useState(generateMockCards(activeCategory));
+  // Data State
+  const [allCards, setAllCards] = useState<StandardCard[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("INITIALIZING");
 
-  // Update cards when category changes
+  // Init Favorites from LocalStorage
   useEffect(() => {
-    setAllCards(generateMockCards(activeCategory));
-    setActiveSubCategory('ALL'); // Reset sub-category on main category change
-    setSidebarFilter('ALL'); // Reset sidebar filter on category change
+    const storedFavs = localStorage.getItem('acme_user_favorites');
+    if (storedFavs) {
+        try {
+            setFavoriteIds(JSON.parse(storedFavs));
+        } catch (e) {
+            console.error("Failed to parse favorites", e);
+        }
+    }
+  }, []);
+
+  // Apply Theme Class to Body
+  useEffect(() => {
+      // In a real app, we might use a context provider, but this works for the prototype
+      // We rely on the GlobalNav to toggle the class on the body, but we track state here if needed
+  }, []);
+
+  // Load Data when Category Changes
+  useEffect(() => {
+    const loadData = async () => {
+        setIsLoading(true);
+        setLoadingMessage("CONNECTING_TO_DB");
+        
+        // Reset Filters on Category Change
+        setActiveSubCategory('ALL');
+        setSidebarFilter('ALL');
+        
+        // Cycle through fake status messages for "vibe"
+        const msgs = ["HANDSHAKE_INIT", "QUERYING_INDEX", "FETCHING_VECTORS", "RENDERING_ASSETS"];
+        let msgIdx = 0;
+        const msgInterval = setInterval(() => {
+            setLoadingMessage(msgs[msgIdx % msgs.length]);
+            msgIdx++;
+        }, 150);
+
+        setAllCards([]); // Clear current view
+        try {
+            const cards = await DataService.fetchCards(activeCategory);
+            
+            // Merge with favorites status
+            const mergedCards = cards.map(card => ({
+                ...card,
+                isFavorite: favoriteIds.includes(card.id)
+            }));
+            setAllCards(mergedCards);
+        } catch (error) {
+            console.error("Failed to fetch library assets", error);
+        } finally {
+            clearInterval(msgInterval);
+            setIsLoading(false);
+        }
+    };
+    loadData();
   }, [activeCategory]);
 
+  // Re-apply favorites if the list changes (without re-fetching data)
+  useEffect(() => {
+      if (allCards.length > 0) {
+          setAllCards(prevCards => prevCards.map(card => ({
+              ...card,
+              isFavorite: favoriteIds.includes(card.id)
+          })));
+      }
+  }, [favoriteIds.length]);
+
+
+  // --- Handlers ---
+
   const toggleFavorite = (id: string) => {
-    setAllCards(prevCards => 
-      prevCards.map(card => 
-        card.id === id ? { ...card, isFavorite: !card.isFavorite } : card
-      )
-    );
+    const isCurrentlyFav = favoriteIds.includes(id);
+    let newFavs: string[];
+
+    if (isCurrentlyFav) {
+        newFavs = favoriteIds.filter(fid => fid !== id);
+    } else {
+        newFavs = [...favoriteIds, id];
+    }
+
+    setFavoriteIds(newFavs);
+    localStorage.setItem('acme_user_favorites', JSON.stringify(newFavs));
   };
 
-  // Derived state for display
+  const handleUpdatePreferences = (newPrefs: UserPreferences) => {
+    setCurrentUser(prev => ({ ...prev, preferences: newPrefs }));
+  };
+
+  const handleZoomCard = (id: string) => {
+    setZoomedCardId(id);
+    // Add to recent history if not there
+    if (!currentUser.recentHistory.includes(id)) {
+        const newHistory = [id, ...currentUser.recentHistory].slice(0, 5);
+        setCurrentUser(prev => ({ ...prev, recentHistory: newHistory }));
+    }
+  };
+
+  // --- Exclusive Filter Logic ---
+  
+  // When clicking Sidebar (Left), clear Toolbar (Top)
+  const handleSidebarFilter = (filter: SidebarFilter) => {
+    setSidebarFilter(filter);
+    if (filter !== 'ALL') {
+        setActiveSubCategory(null); // De-selects "ALL" or specific subcat in toolbar
+    } else {
+        // If clicking 'ALL' in sidebar (not currently exposed via buttons but good safety)
+        setActiveSubCategory('ALL');
+    }
+  };
+
+  // When clicking Toolbar (Top), clear Sidebar (Left)
+  const handleSubCategoryClick = (subCat: string) => {
+      setActiveSubCategory(subCat);
+      setSidebarFilter('ALL'); // Resets sidebar buttons
+  };
+
+
+  // --- Filter Application ---
   const activeTheme = THEMES[activeCategory];
   const currentSubCategories = SUB_CATEGORIES[activeCategory];
   
-  // Filter AND Sort cards
   const filteredCards = allCards
     .filter(card => {
-      // 1. Search Text
       const matchesSearch = card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             card.description.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // 2. Sub-Category Filter
-      const matchesSubCat = activeSubCategory === 'ALL' || card.subCategory === activeSubCategory;
+      // If activeSubCategory is null, it means we are ignoring subcats (likely using sidebar filter)
+      // If it is 'ALL', we match everything
+      // Otherwise strict match
+      const matchesSubCat = !activeSubCategory || activeSubCategory === 'ALL' || card.subCategory === activeSubCategory;
       
-      // 3. Sidebar "Mode" Filter
       let matchesSidebar = true;
       switch (sidebarFilter) {
-        case 'NEW':
-          matchesSidebar = card.isNew;
-          break;
-        case 'FAVORITES':
-          matchesSidebar = card.isFavorite;
-          break;
-        case 'FREQUENT':
-          // Handled by sort, but we filter to ensure we only show relevant ones? 
-          // Or just allow all? Let's allow all but auto-sort.
-          matchesSidebar = true; 
-          break;
-        case 'ALL':
-        default:
-          matchesSidebar = true;
-          break;
+        case 'NEW': matchesSidebar = card.isNew; break;
+        case 'FAVORITES': matchesSidebar = card.isFavorite; break;
+        case 'FREQUENT': matchesSidebar = true; break; // Placeholder logic
+        default: matchesSidebar = true; break;
       }
 
       return matchesSearch && matchesSubCat && matchesSidebar;
     })
     .sort((a, b) => {
-      // If Sidebar is set to FREQUENT, override sort to Usage Descending
-      if (sidebarFilter === 'FREQUENT') {
-        return b.stats.usage - a.stats.usage;
-      }
-
+      if (sidebarFilter === 'FREQUENT') return b.stats.usage - a.stats.usage;
       switch (sortMode) {
         case 'NAME_ASC': return a.title.localeCompare(b.title);
         case 'NAME_DESC': return b.title.localeCompare(a.title);
         case 'USAGE_DESC': return b.stats.usage - a.stats.usage;
         case 'USAGE_ASC': return a.stats.usage - b.stats.usage;
+        case 'DATE_ASC': return (a.lastModified || 0) - (b.lastModified || 0);
+        case 'DATE_DESC': return (b.lastModified || 0) - (a.lastModified || 0);
         default: return 0;
       }
     });
 
   const zoomedCard = allCards.find(c => c.id === zoomedCardId);
 
-  // Reset search when changing categories
   useEffect(() => {
     setSearchTerm("");
   }, [activeCategory]);
 
   return (
-    <div className="flex h-screen w-screen bg-[#202020] overflow-hidden font-sans relative">
+    <div className="flex h-screen w-screen bg-[var(--bg-main)] overflow-hidden font-sans relative selection:bg-blue-500/30 text-sm transition-colors duration-300">
       
-      <Sidebar 
-        buttons={SIDEBAR_BUTTONS} 
-        theme={activeTheme} 
-        activeFilter={sidebarFilter}
-        onFilterChange={setSidebarFilter}
-        filteredCount={filteredCards.length}
-        totalCount={allCards.length}
-      />
+      {/* 1. Global Navigation (Leftmost Strip) */}
+      <GlobalNav activeModule={activeModule} onNavigate={setActiveModule} />
 
-      <main className="flex-1 flex flex-col relative">
-
-        {/* Background: Drafting Table Mat Look */}
-        <div className="absolute inset-0 -z-10 bg-[#1a1a1a]">
-           <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px]"></div>
-           {/* Large faded category text */}
-           <div className="absolute bottom-0 right-10 text-[15rem] font-black text-white/5 pointer-events-none select-none leading-none">
-              {activeCategory.charAt(0)}
-           </div>
-        </div>
-
-        {/* Top Tabs Area */}
-        <div className="pt-8 pl-8 flex items-end z-10 gap-1 overflow-x-auto scrollbar-hide">
-          {Object.values(THEMES).map((theme) => {
-            const isActive = activeCategory === theme.id;
+      {/* 2. User Panel Popup (Global) */}
+      <div className="fixed top-6 right-6 z-[100]">
+        <div className="relative">
+            <button 
+                onClick={() => setShowUserPanel(!showUserPanel)}
+                className={`flex items-center gap-3 pl-1 pr-3 py-1 rounded-full border transition-all duration-200 ${showUserPanel ? 'bg-[var(--bg-card)] border-indigo-500/50' : 'bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--text-muted)]'}`}
+            >
+                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold border-2 border-indigo-500 shadow-sm overflow-hidden">
+                    {currentUser.avatarUrl ? (
+                        <img src={currentUser.avatarUrl} className="w-full h-full object-cover" alt="User"/>
+                    ) : (
+                        <UserIcon size={16} />
+                    )}
+                </div>
+                <div className="text-left hidden xl:block">
+                    <div className="text-xs text-[var(--text-main)] font-bold leading-none mb-0.5">{currentUser.name}</div>
+                    <div className="text-[9px] text-[var(--text-muted)] font-mono leading-none">ID: {currentUser.id}</div>
+                </div>
+            </button>
             
-            return (
-              <button
-                key={theme.id}
-                onClick={() => setActiveCategory(theme.id)}
-                className={`
-                  relative px-8 py-3 min-w-[140px] font-black tracking-tight uppercase text-lg transition-all duration-200
-                  border-t-4 border-x-4 border-black rounded-t-lg shrink-0
-                  ${isActive 
-                    ? `${theme.baseColor} ${theme.textColor} translate-y-1 z-10` 
-                    : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700'}
-                `}
-              >
-                {theme.label}
-                {/* Tab Highlight Line */}
-                {isActive && <div className="absolute bottom-[-4px] left-0 w-full h-4 bg-inherit z-20"></div>}
-              </button>
-            );
-          })}
-          {/* Line that runs under inactive tabs */}
-          <div className="flex-1 border-b-4 border-black h-4 transform translate-y-[-4px] bg-transparent min-w-[50px]"></div>
-        </div>
-
-        {/* Main Content Area */}
-        <div className={`flex-1 overflow-y-auto relative scroll-smooth border-t-4 border-black bg-[#252525] shadow-[inset_0_10px_30px_rgba(0,0,0,0.5)]`}>
-          
-          {/* Sticky Compact Header (Search & Sort & Sub-cats) */}
-          <div className="sticky top-0 z-30 bg-[#252525]/95 backdrop-blur-sm border-b-2 border-black/20 shadow-xl flex flex-col">
-             
-             {/* Top Row: Search & Sort */}
-             <div className="px-6 py-3 flex flex-col sm:flex-row gap-4 items-center">
-                {/* Search Input */}
-                <div className="relative group flex-1 w-full sm:w-auto max-w-3xl">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                          <Search className="text-black/40" size={18} strokeWidth={3} />
-                      </div>
-                      <input 
-                          type="text" 
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          placeholder={`SEARCH ${activeTheme.label}...`}
-                          className="
-                            block w-full pl-10 pr-4 py-2 
-                            border-4 border-black bg-white 
-                            text-black font-bold font-mono uppercase text-sm
-                            shadow-hard-sm transition-all 
-                            focus:outline-none focus:shadow-hard focus:-translate-y-0.5 focus:-translate-x-0.5
-                            placeholder:text-neutral-400
-                          "
-                      />
-                </div>
-
-                {/* Sort Control */}
-                <div className="relative w-full sm:w-auto min-w-[200px]">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                        <ArrowUpDown className="text-black/40" size={16} strokeWidth={3} />
-                    </div>
-                    <select
-                        value={sortMode}
-                        onChange={(e) => setSortMode(e.target.value as any)}
-                        disabled={sidebarFilter === 'FREQUENT'} // Disable manual sort if FREQUENT mode is active
-                        className={`
-                            appearance-none w-full pl-10 pr-8 py-2
-                            border-4 border-black bg-white
-                            text-black font-bold font-mono uppercase text-sm
-                            shadow-hard-sm transition-all cursor-pointer
-                            focus:outline-none focus:shadow-hard focus:-translate-y-0.5 focus:-translate-x-0.5
-                            ${sidebarFilter === 'FREQUENT' ? 'opacity-50 cursor-not-allowed bg-neutral-200' : ''}
-                        `}
-                    >
-                        {sidebarFilter === 'FREQUENT' ? (
-                           <option>AUTO: FREQUENT</option>
-                        ) : (
-                          <>
-                            <option value="NAME_ASC">NAME (A-Z)</option>
-                            <option value="NAME_DESC">NAME (Z-A)</option>
-                            <option value="USAGE_DESC">USAGE (HIGH)</option>
-                            <option value="USAGE_ASC">USAGE (LOW)</option>
-                          </>
-                        )}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none z-10">
-                        <ChevronDown className="text-black" size={16} strokeWidth={4} />
-                    </div>
-                </div>
-             </div>
-
-             {/* Bottom Row: Sub-Categories */}
-             <div className="px-6 pb-3 flex gap-2 overflow-x-auto scrollbar-none">
-                {currentSubCategories.map((subCat) => {
-                  const isActive = activeSubCategory === subCat;
-                  return (
-                    <button
-                      key={subCat}
-                      onClick={() => setActiveSubCategory(subCat)}
-                      className={`
-                        px-4 py-1 rounded-full font-bold text-xs font-mono uppercase tracking-wider border-2 border-black transition-all
-                        ${isActive 
-                          ? `${activeTheme.accentColor} text-black shadow-hard-sm -translate-y-0.5` 
-                          : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'}
-                      `}
-                    >
-                      {subCat}
-                    </button>
-                  );
-                })}
-             </div>
-          </div>
-
-          {/* Card Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 pb-32 px-8 pt-6">
-            {filteredCards.length > 0 ? (
-              filteredCards.map((card) => (
-                <TradingCard 
-                  key={card.id} 
-                  card={card} 
-                  theme={activeTheme} 
-                  variant="gallery"
-                  onZoom={() => setZoomedCardId(card.id)}
-                  onToggleFavorite={toggleFavorite}
+            {showUserPanel && (
+                <>
+                <div className="fixed inset-0 z-[-1] bg-transparent" onClick={() => setShowUserPanel(false)}></div>
+                <UserPanel 
+                    user={currentUser} 
+                    onClose={() => setShowUserPanel(false)} 
+                    onUpdatePreferences={handleUpdatePreferences}
                 />
-              ))
-            ) : (
-              <div className="col-span-full flex flex-col items-center justify-center h-64 text-neutral-500 font-mono">
-                 <Search size={64} className="mb-4 opacity-20" />
-                 <p className="text-xl font-bold">NO_RECORDS_FOUND</p>
-                 <p className="text-sm">ADJUST FILTERS OR SEARCH</p>
-              </div>
+                </>
             )}
-          </div>
-
         </div>
-      </main>
+      </div>
 
-      {/* ZOOM OVERLAY */}
+      {/* 3. Content Area */}
+      {activeModule === 'home' ? (
+         <HomeModule user={currentUser} onNavigate={setActiveModule} />
+      ) : activeModule === 'tools' ? (
+         <ToolsModule />
+      ) : activeModule === 'library' ? (
+        <>
+            {/* Library Sidebar */}
+            <Sidebar 
+                buttons={SIDEBAR_BUTTONS} 
+                theme={activeTheme} 
+                activeFilter={sidebarFilter}
+                onFilterChange={handleSidebarFilter}
+                filteredCount={filteredCards.length}
+                totalCount={allCards.length}
+            />
+
+            <main className="flex-1 flex flex-col relative bg-[var(--bg-subtle)]">
+
+                {/* Background: Engineering Grid (Controlled by User Prefs) */}
+                {currentUser.preferences.showGrid && (
+                    <div className="absolute inset-0 z-0 bg-grid opacity-20 pointer-events-none"></div>
+                )}
+
+                {/* Header / Tabs Area */}
+                <div className="pt-6 px-8 z-40 relative border-b border-[var(--border-subtle)] bg-[var(--bg-main)]/90 backdrop-blur-md">
+                    <div className="flex items-center justify-between mb-6">
+                        <h1 className="text-2xl font-bold text-[var(--text-main)] tracking-tight flex items-center gap-3">
+                        <span className="w-2 h-8 bg-[var(--text-main)]/20 rounded-sm"></span>
+                        LIBRARY BROWSER
+                        <span className="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-card)] px-2 py-1 rounded ml-2 border border-[var(--border-subtle)]">v2.4.0</span>
+                        </h1>
+                        
+                        {/* Top Right Actions (View Toggles Only Now) */}
+                        <div className="flex gap-4 items-center mr-40">
+                            {/* View Toggles */}
+                            <div className="flex gap-2 bg-[var(--bg-card)] p-1 rounded-lg border border-[var(--border-subtle)]">
+                                <div className="h-8 w-8 rounded bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-main)] shadow-sm cursor-pointer">
+                                    <LayoutGrid size={16} />
+                                </div>
+                                <div className="h-8 w-8 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition-colors">
+                                    <List size={16} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Module Tabs */}
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0">
+                        {Object.values(THEMES).map((theme) => {
+                        const isActive = activeCategory === theme.id;
+                        
+                        return (
+                            <button
+                            key={theme.id}
+                            onClick={() => setActiveCategory(theme.id)}
+                            className={`
+                                relative px-6 py-3 min-w-[120px] font-bold text-sm tracking-wide uppercase transition-all duration-200
+                                ${isActive 
+                                ? `text-[var(--text-main)] bg-[var(--text-main)]/5` 
+                                : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] hover:bg-[var(--text-main)]/5'}
+                            `}
+                            >
+                            {theme.label}
+                            {/* Active Glow & Thick Bar */}
+                            {isActive && (
+                                <div className={`absolute bottom-0 left-0 w-full h-1.5 ${theme.baseColor} shadow-[0_-2px_12px_rgba(0,0,0,0.3)]`}></div>
+                            )}
+                            </button>
+                        );
+                        })}
+                    </div>
+                </div>
+
+                {/* Toolbar (Filter & Search) */}
+                <div className="z-20 bg-[#18181b] border-b border-white/5 px-8 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shadow-lg">
+                    
+                    {/* LEFT: Search */}
+                    <div className="flex items-center gap-4">
+                        <div className="relative w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" size={16} />
+                            <input 
+                                type="text" 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder={`Search ${activeTheme.label.toLowerCase()}...`}
+                                className="w-full pl-10 pr-4 py-2 bg-[var(--bg-main)] border border-white/10 rounded text-white placeholder:text-neutral-600 focus:outline-none focus:border-white/30 focus:bg-black/80 transition-all font-mono text-sm"
+                            />
+                        </div>
+                        <div className="h-8 w-[1px] bg-white/10 hidden xl:block"></div>
+                    </div>
+
+                    {/* CENTER: Sub Cats */}
+                    <div className="flex-1 flex justify-center overflow-x-auto px-4">
+                         <div className="flex items-center gap-2">
+                            <Filter size={14} className="text-neutral-600" />
+                            
+                            <button
+                                onClick={() => handleSubCategoryClick('ALL')}
+                                className={`
+                                    px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap
+                                    ${activeSubCategory === 'ALL' 
+                                    ? `${activeTheme.baseColor} text-white border-transparent shadow-md` 
+                                    : 'bg-transparent text-neutral-500 border-neutral-700 hover:border-neutral-500 hover:text-neutral-300'}
+                                `}
+                            >
+                                ALL
+                            </button>
+
+                             {/* Inject Favorites Tab */}
+                            <button
+                                onClick={() => handleSubCategoryClick('FAVORITES')}
+                                className={`
+                                    px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap flex items-center gap-1
+                                    ${activeSubCategory === 'FAVORITES' 
+                                    ? `bg-amber-500 text-black border-transparent shadow-md` 
+                                    : 'bg-transparent text-neutral-500 border-neutral-700 hover:border-amber-500 hover:text-amber-500'}
+                                `}
+                            >
+                                <Star size={10} className={activeSubCategory === 'FAVORITES' ? 'fill-black' : ''} />
+                                FAVORITES
+                            </button>
+
+                            {currentSubCategories.filter(c => c !== 'ALL').map((subCat) => {
+                                const isActive = activeSubCategory === subCat;
+                                return (
+                                    <button
+                                    key={subCat}
+                                    onClick={() => handleSubCategoryClick(subCat)}
+                                    className={`
+                                        px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all whitespace-nowrap
+                                        ${isActive 
+                                        ? `${activeTheme.baseColor} text-white border-transparent shadow-md` 
+                                        : 'bg-transparent text-neutral-500 border-neutral-700 hover:border-neutral-500 hover:text-neutral-300'}
+                                    `}
+                                    >
+                                    {subCat}
+                                    </button>
+                                );
+                            })}
+                         </div>
+                    </div>
+
+                    {/* RIGHT: Sort */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-neutral-500 font-bold uppercase">Sort</span>
+                        <div className="relative">
+                            <select
+                                value={sortMode}
+                                onChange={(e) => setSortMode(e.target.value as any)}
+                                disabled={sidebarFilter === 'FREQUENT'} 
+                                className={`appearance-none pl-3 pr-8 py-1.5 bg-neutral-800 border border-white/10 rounded text-xs font-mono text-neutral-300 focus:outline-none cursor-pointer hover:border-white/30 transition-colors
+                                ${sidebarFilter === 'FREQUENT' ? 'opacity-50 cursor-not-allowed' : ''}
+                                `}
+                            >
+                                <option value="NAME_ASC">Name (A-Z)</option>
+                                <option value="NAME_DESC">Name (Z-A)</option>
+                                <option value="USAGE_DESC">Usage (High)</option>
+                                <option value="USAGE_ASC">Usage (Low)</option>
+                                <option value="DATE_DESC">Newest First</option>
+                                <option value="DATE_ASC">Oldest First</option>
+                            </select>
+                            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none"/>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Content Grid */}
+                <div className="flex-1 overflow-y-auto p-8 relative custom-scrollbar">
+                    {isLoading ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-neutral-500 z-20 bg-[var(--bg-main)]/80 backdrop-blur-sm">
+                           <div className="relative">
+                                <div className={`w-16 h-16 border-4 border-t-${activeTheme.baseColor.split('-')[1]}-500 border-r-transparent border-b-neutral-800 border-l-neutral-800 rounded-full animate-spin`}></div>
+                                <Terminal size={24} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${activeTheme.textColor.replace('text-', 'text-')}`} />
+                           </div>
+                           <div className="mt-4 flex flex-col items-center">
+                               <p className="font-mono text-lg font-bold text-[var(--text-main)] tracking-widest uppercase animate-pulse">
+                                   {loadingMessage}
+                               </p>
+                               <p className="text-[10px] font-mono text-[var(--text-muted)] mt-1">
+                                   ESTABLISHING SECURE LINK :: {activeTheme.label}_DB
+                               </p>
+                           </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-20">
+                            {filteredCards.length > 0 ? (
+                            filteredCards.map((card) => (
+                                <TradingCard 
+                                key={card.id} 
+                                card={card} 
+                                theme={activeTheme} 
+                                variant="gallery"
+                                onZoom={() => handleZoomCard(card.id)}
+                                onToggleFavorite={toggleFavorite}
+                                />
+                            ))
+                            ) : (
+                            <div className="col-span-full flex flex-col items-center justify-center h-96 text-neutral-600">
+                                <div className="p-6 rounded-full bg-white/5 mb-4">
+                                    <Search size={48} strokeWidth={1.5} />
+                                </div>
+                                <p className="text-lg font-medium text-[var(--text-muted)]">No standards found</p>
+                                <p className="text-sm font-mono">Adjust your filters to broaden search</p>
+                            </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+            </main>
+        </>
+      ) : (
+          // Fallback for other modules
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#121212] text-neutral-500">
+             <div className="p-8 border border-dashed border-neutral-800 rounded-2xl text-center max-w-md">
+                <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
+                   {activeModule === 'projects' && <List size={32} />}
+                   {activeModule === 'admin' && <UserIcon size={32} />}
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-wider">
+                    {activeModule} Module
+                </h2>
+                <p className="text-neutral-400 mb-6">
+                    This section is currently offline.
+                </p>
+                <button 
+                   onClick={() => setActiveModule('home')}
+                   className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold uppercase tracking-wide transition-colors"
+                >
+                    Return to Dashboard
+                </button>
+             </div>
+          </div>
+      )}
+
+      {/* Modal Layer */}
       {zoomedCard && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 p-4"
           onClick={() => setZoomedCardId(null)}
         >
-           {/* Close Instructions */}
-           <div className="absolute top-8 right-8 flex flex-col items-end gap-2 z-50">
-             <button 
-                onClick={() => setZoomedCardId(null)}
-                className="bg-red-500 text-white p-2 rounded border-4 border-black shadow-hard hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
-             >
-               <X size={32} />
-             </button>
-             <span className="text-white font-mono text-xs bg-black px-2 py-1 hidden md:block">ESC / CLICK BG TO CLOSE</span>
-           </div>
+           <button 
+              onClick={() => setZoomedCardId(null)}
+              className="absolute top-6 right-6 text-neutral-400 hover:text-white transition-colors"
+           >
+             <X size={32} strokeWidth={1.5} />
+           </button>
 
-           {/* The Card */}
            <div className="cursor-default" onClick={(e) => e.stopPropagation()}>
              <TradingCard 
                 card={zoomedCard} 
@@ -277,10 +516,6 @@ const App: React.FC = () => {
                 onClose={() => setZoomedCardId(null)}
                 onToggleFavorite={toggleFavorite}
              />
-           </div>
-
-           <div className="absolute bottom-12 text-white font-mono text-lg font-bold tracking-[0.2em] uppercase animate-pulse bg-black px-4 py-2 border-2 border-white pointer-events-none">
-              Left Click to Flip | Right Click to Exit
            </div>
         </div>
       )}
