@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserProfile, UserPreferences } from '../types';
 import { User, Settings, Bell, Download, LogOut, Award, Clock, ChevronRight, ToggleLeft, ToggleRight, Briefcase, Mail, Phone, Calendar, Shield, PenTool, FileText, Quote, LayoutGrid } from 'lucide-react';
@@ -10,6 +11,7 @@ interface UserPanelProps {
 
 export const UserPanel: React.FC<UserPanelProps> = ({ user, onClose, onUpdatePreferences }) => {
   const [activeTab, setActiveTab] = useState<'FILE' | 'CONFIG'>('FILE');
+  const [imgError, setImgError] = useState(false);
 
   const toggleSetting = (key: keyof UserPreferences) => {
     if (typeof user.preferences[key] === 'boolean') {
@@ -21,7 +23,7 @@ export const UserPanel: React.FC<UserPanelProps> = ({ user, onClose, onUpdatePre
   };
 
   return (
-    <div className="absolute top-full right-0 mt-2 w-[400px] bg-[var(--bg-card)] border border-[var(--border-main)] rounded-sm shadow-[0_20px_60px_rgba(0,0,0,0.7)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col font-sans ring-1 ring-white/10">
+    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[400px] bg-[var(--bg-card)] border border-[var(--border-main)] rounded-sm shadow-[0_20px_60px_rgba(0,0,0,0.9)] z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col font-sans ring-1 ring-white/20">
       
       {/* Header / Identity Strip */}
       <div className="bg-[#18181b] border-b border-[var(--border-subtle)] p-4 flex items-start gap-4 relative overflow-hidden">
@@ -34,12 +36,18 @@ export const UserPanel: React.FC<UserPanelProps> = ({ user, onClose, onUpdatePre
          </div>
 
          <div className="relative w-20 h-20 shrink-0">
-             <div className="w-full h-full rounded bg-neutral-800 border-2 border-indigo-500/50 overflow-hidden shadow-inner">
-                <img 
-                   src={user.avatarUrl} 
-                   alt="Avatar" 
-                   className="w-full h-full object-cover"
-                />
+             <div className="w-full h-full rounded bg-white border-2 border-indigo-500/50 overflow-hidden shadow-inner flex items-center justify-center">
+                {!imgError ? (
+                    <img 
+                    src={user.avatarUrl} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                    crossOrigin="anonymous"
+                    />
+                ) : (
+                    <User size={40} className="text-indigo-500/50"/>
+                )}
              </div>
              <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-indigo-600 rounded-full border-2 border-[#18181b] flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
                 {user.level}

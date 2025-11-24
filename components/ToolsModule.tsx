@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ToolItem, ToolTier } from '../types';
-import { Wrench, Hash, FileCode, Search, Map, Database, Calculator, Network, Eye, FileText, Copy, Check, AlertTriangle, Zap, Layers, ShieldCheck, Terminal } from 'lucide-react';
+import { Wrench, Hash, FileCode, Search, Map, Database, Calculator, Network, Eye, FileText, Copy, Check, AlertTriangle, Zap, Layers, ShieldCheck, Terminal, Info } from 'lucide-react';
 
 // --- MOCK DATA FOR TOOLS ---
 const TOOLS_DB: ToolItem[] = [
@@ -25,6 +25,34 @@ const IconMap: Record<string, React.ElementType> = {
   'Network': Network,
   'Zap': Zap,
   'Terminal': Terminal
+};
+
+// --- TIER EXPLANATIONS ---
+const TIER_INFO: Record<string, { layman: string, engineer: string }> = {
+  discipline: {
+    layman: "Who is responsible for this object? (e.g., Civil vs Survey)",
+    engineer: "Tier 1: Liability/Ownership separation for XREF management."
+  },
+  category: {
+    layman: "Which major system does this belong to? (e.g., Utilities)",
+    engineer: "Tier 2: Functional Grouping for broad filtration."
+  },
+  element: {
+    layman: "The 'Noun'. What is the object physically? (e.g., Pipe, Manhole)",
+    engineer: "Tier 3: Primary Database Object classification."
+  },
+  modifier: {
+    layman: "The 'Adjective'. Describes specific details like '12-inch', 'PVC', or 'Main'.",
+    engineer: "Tier 4: Attribute Discriminator. Specificity control to prevent layer collisions."
+  },
+  status: {
+    layman: "When does this exist? (e.g., Existing, New, Future)",
+    engineer: "Tier 5: Temporal Phase status for construction logic."
+  },
+  type: {
+    layman: "How is it drawn? (e.g., Line, Text, Block)",
+    engineer: "Tier 6: Geometry/Entity Format type."
+  }
 };
 
 export const ToolsModule: React.FC = () => {
@@ -90,9 +118,9 @@ export const ToolsModule: React.FC = () => {
 
           {/* --- FEATURED WIDGET: LAYER NAME GENERATOR --- */}
           <div className="mb-12">
-             <div className="bg-[#18181b] border border-[var(--border-main)] rounded-sm shadow-2xl overflow-hidden">
+             <div className="bg-[#18181b] border border-[var(--border-main)] rounded-sm shadow-2xl overflow-visible relative z-20">
                  {/* Widget Header */}
-                 <div className="bg-[#121212] border-b border-white/5 p-4 flex justify-between items-center relative overflow-hidden">
+                 <div className="bg-[#121212] border-b border-white/5 p-4 flex justify-between items-center relative overflow-hidden rounded-t-sm">
                      <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
                      <div>
                          <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -110,11 +138,11 @@ export const ToolsModule: React.FC = () => {
                      {/* Controls */}
                      <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-4">
                         {Object.entries(OPTIONS).map(([key, options]) => (
-                            <div key={key} className="group">
-                                <label className="block text-[10px] font-mono text-neutral-500 uppercase tracking-wider mb-1.5 ml-1 group-hover:text-amber-500 transition-colors">
+                            <div key={key} className="group relative">
+                                <label className="block text-[10px] font-mono text-neutral-500 uppercase tracking-wider mb-1.5 ml-1 group-hover:text-amber-500 transition-colors cursor-help w-max">
                                     {key}
                                 </label>
-                                <div className="relative">
+                                <div className="relative z-10">
                                     <select 
                                         value={(layerState as any)[key]}
                                         onChange={(e) => setLayerState({...layerState, [key]: e.target.value})}
@@ -125,6 +153,30 @@ export const ToolsModule: React.FC = () => {
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
                                         <Terminal size={12} className="text-neutral-400" />
                                     </div>
+                                </div>
+
+                                {/* Tooltip / Guide */}
+                                <div className="absolute z-50 bottom-full left-0 mb-2 w-64 bg-neutral-900 p-3 rounded border border-white/10 shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none translate-y-2 group-hover:translate-y-0">
+                                    <div className="flex items-center gap-2 mb-2 border-b border-white/5 pb-2">
+                                        <Info size={12} className="text-amber-500"/>
+                                        <span className="text-[10px] font-bold uppercase text-white">Tier Guide: {key}</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div>
+                                            <span className="text-[9px] text-neutral-500 uppercase font-bold block mb-0.5">Layman</span>
+                                            <span className="text-[10px] text-neutral-300 leading-tight block">
+                                                {TIER_INFO[key]?.layman}
+                                            </span>
+                                        </div>
+                                        <div>
+                                             <span className="text-[9px] text-neutral-500 uppercase font-bold block mb-0.5">Engineer</span>
+                                             <span className="text-[10px] text-indigo-400 leading-tight block font-mono">
+                                                {TIER_INFO[key]?.engineer}
+                                             </span>
+                                        </div>
+                                    </div>
+                                    {/* Little arrow */}
+                                    <div className="absolute bottom-[-4px] left-4 w-2 h-2 bg-neutral-900 border-r border-b border-white/10 transform rotate-45"></div>
                                 </div>
                             </div>
                         ))}

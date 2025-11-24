@@ -1,4 +1,5 @@
-import { ElementType, StandardCard, CadVector } from '../types';
+
+import { ElementType, StandardCard, CadVector, Project, Employee } from '../types';
 import { generateVectorData } from '../constants';
 
 // --- MOCK DATABASE (Eventually replace this with SQLite calls) ---
@@ -59,6 +60,206 @@ const MOCK_DB: any[] = [
   { id: 'spec-07', title: '31 23 00', cat: 'SPECIFICATIONS', subCat: 'SITEWORK', desc: 'Excavation and Fill', file: '31 23 00 Excavation.docx', path: 'J:\\LIB\\SPECS\\31 23 00.docx' },
 ];
 
+const MOCK_PROJECTS: Project[] = [
+  {
+    id: '24-105',
+    name: 'Smith Creek Subdivision',
+    client: 'Lennar Homes',
+    location: 'Santa Rosa, CA',
+    status: 'ACTIVE',
+    phase: 'Construction Docs',
+    progress: 65,
+    dueDate: '2024-06-15',
+    manager: { id: 'pm1', name: 'Sarah J.', role: 'PM' },
+    team: [
+        { id: 'sur1', name: 'R. Toony', role: 'Lead Surveyor' },
+        { id: 'dr1', name: 'Mike D.', role: 'Drafter' }
+    ],
+    tags: ['Residential', 'Grading', 'Storm']
+  },
+  {
+    id: '24-089',
+    name: 'Hwy 101 Corridor Widening',
+    client: 'CalTrans',
+    location: 'Petaluma, CA',
+    status: 'HOLD',
+    phase: 'Design Development',
+    progress: 30,
+    dueDate: '2024-09-01',
+    manager: { id: 'pm2', name: 'David R.', role: 'PM' },
+    team: [
+        { id: 'eng1', name: 'Jessica T.', role: 'Civil Lead' }
+    ],
+    tags: ['Transportation', 'Public Works']
+  },
+  {
+    id: '23-210',
+    name: 'City Hall Annex Retrofit',
+    client: 'City of Napa',
+    location: 'Napa, CA',
+    status: 'COMPLETED',
+    phase: 'As-Builts',
+    progress: 100,
+    dueDate: '2024-02-28',
+    manager: { id: 'pm1', name: 'Sarah J.', role: 'PM' },
+    team: [
+        { id: 'dr2', name: 'Tom H.', role: 'Drafter' }
+    ],
+    tags: ['Commercial', 'Retrofit']
+  },
+  {
+    id: '24-112',
+    name: 'Oakmont Senior Living',
+    client: 'Oakmont Group',
+    location: 'Windsor, CA',
+    status: 'BIDDING',
+    phase: 'Proposal',
+    progress: 10,
+    dueDate: '2024-04-20',
+    manager: { id: 'pm3', name: 'Robert L.', role: 'Principal' },
+    team: [],
+    tags: ['Commercial', 'Grading']
+  },
+  {
+    id: '24-115',
+    name: 'Riverside Park Improvements',
+    client: 'County Parks',
+    location: 'Healdsburg, CA',
+    status: 'ACTIVE',
+    phase: 'Permitting',
+    progress: 85,
+    dueDate: '2024-05-10',
+    manager: { id: 'pm2', name: 'David R.', role: 'PM' },
+    team: [
+        { id: 'sur1', name: 'R. Toony', role: 'Lead Surveyor' }
+    ],
+    tags: ['Public Works', 'Parks']
+  }
+];
+
+const MOCK_EMPLOYEES: Employee[] = [
+    { 
+        id: 'ENG-101', 
+        name: 'Elena Vance', 
+        title: 'Senior Civil Engineer', 
+        department: 'Engineering', 
+        status: 'ACTIVE', 
+        email: 'e.vance@acme.com', 
+        phone: 'x120', 
+        location: 'Office 204', 
+        skills: ['Hydrology', 'HEC-RAS', 'Project Mgmt'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Elena&backgroundColor=b6e3f4'
+    },
+    { 
+        id: 'CAD-055', 
+        name: 'Marcus Thorne', 
+        title: 'CAD Technician III', 
+        department: 'Engineering', 
+        status: 'REMOTE', 
+        email: 'm.thorne@acme.com', 
+        phone: 'x135', 
+        location: 'Remote (OR)', 
+        skills: ['Civil 3D', 'LISP', 'ArcGIS'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Marcus&backgroundColor=ffdfbf'
+    },
+    { 
+        id: 'MGT-002', 
+        name: 'Sarah Jenkins', 
+        title: 'Project Manager', 
+        department: 'Management', 
+        status: 'MEETING', 
+        email: 's.jenkins@acme.com', 
+        phone: 'x102', 
+        location: 'Office 101', 
+        skills: ['Client Relations', 'Budgeting', 'Scheduling'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Sarah&backgroundColor=c0aede'
+    },
+    { 
+        id: 'CAD-089', 
+        name: 'Mike ' + "'New Guy'" + ' Davis', 
+        title: 'Jr. Drafter', 
+        department: 'Engineering', 
+        status: 'ACTIVE', 
+        email: 'm.davis@acme.com', 
+        phone: 'x140', 
+        location: 'Bullpen Desk 4', 
+        skills: ['AutoCAD', 'Coffee Runs', 'Learning'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Mike&backgroundColor=d1d4f9'
+    },
+    { 
+        id: 'SUR-042', 
+        name: 'Jim ' + "'Boots'" + ' Buckner', 
+        title: 'Party Chief', 
+        department: 'Surveying', 
+        status: 'FIELD', 
+        email: 'j.buckner@acme.com', 
+        phone: 'Mobile', 
+        location: 'Site: Hwy 101', 
+        skills: ['Trimble', 'Boundary', 'Chainsaw'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Jim&backgroundColor=ffd5dc'
+    },
+    { 
+        id: 'GIS-012', 
+        name: 'Chloe Rayner', 
+        title: 'GIS Specialist', 
+        department: 'GIS', 
+        status: 'ACTIVE', 
+        email: 'c.rayner@acme.com', 
+        phone: 'x155', 
+        location: 'Server Room', 
+        skills: ['Python', 'QGIS', 'Database Admin'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Chloe&backgroundColor=c0aede'
+    },
+    { 
+        id: 'INT-099', 
+        name: 'Sam K.', 
+        title: 'Summer Intern', 
+        department: 'Engineering', 
+        status: 'ACTIVE', 
+        email: 'intern@acme.com', 
+        phone: 'N/A', 
+        location: 'Archive Room', 
+        skills: ['Scanning', 'Filing', 'Optimism'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Sam&backgroundColor=b6e3f4'
+    },
+    { 
+        id: 'ADM-001', 
+        name: 'Linda Graham', 
+        title: 'Office Manager', 
+        department: 'Admin', 
+        status: 'ACTIVE', 
+        email: 'l.graham@acme.com', 
+        phone: 'x100', 
+        location: 'Front Desk', 
+        skills: ['Payroll', 'Logistics', 'Enforcement'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Linda&backgroundColor=ffdfbf'
+    },
+    { 
+        id: 'ENG-104', 
+        name: 'Raj Patel', 
+        title: 'Hydrology Engineer', 
+        department: 'Engineering', 
+        status: 'LEAVE', 
+        email: 'r.patel@acme.com', 
+        phone: 'x124', 
+        location: 'Office 205', 
+        skills: ['WSPG', 'StormCAD', 'Modeling'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Raj&backgroundColor=d1d4f9'
+    },
+    { 
+        id: 'SUR-045', 
+        name: 'Tyrell Williams', 
+        title: 'Drone Pilot / Surveyor', 
+        department: 'Surveying', 
+        status: 'FIELD', 
+        email: 't.williams@acme.com', 
+        phone: 'Mobile', 
+        location: 'Site: Smith Creek', 
+        skills: ['LiDAR', 'DroneDeploy', 'Photogrammetry'],
+        avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Tyrell&backgroundColor=ffd5dc'
+    }
+];
+
 export class DataService {
   
   /**
@@ -100,5 +301,21 @@ export class DataService {
           complexity: Math.floor(Math.random() * 10)
         }
     }));
+  }
+
+  /**
+   * Fetches Projects
+   */
+  static async fetchProjects(): Promise<Project[]> {
+      await new Promise(resolve => setTimeout(resolve, 400)); // Sim latency
+      return MOCK_PROJECTS;
+  }
+
+  /**
+   * Fetches Employees
+   */
+  static async fetchEmployees(): Promise<Employee[]> {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return MOCK_EMPLOYEES;
   }
 }

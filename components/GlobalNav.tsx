@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Book, Briefcase, Settings, HelpCircle, LayoutGrid, Shield, Database, Activity, Wrench } from 'lucide-react';
+import { Home, Book, Briefcase, Settings, HelpCircle, LayoutGrid, Shield, Database, Activity, Wrench, Users } from 'lucide-react';
 import { ToggleLeft, ToggleRight, Sun, Moon } from 'lucide-react';
 
 interface GlobalNavProps {
@@ -14,6 +14,7 @@ export const GlobalNav: React.FC<GlobalNavProps> = ({ activeModule, onNavigate }
     { id: 'projects', icon: Briefcase, label: 'Projects' },
     { id: 'library', icon: Book, label: 'Library' },
     { id: 'tools', icon: Wrench, label: 'Tools' },
+    { id: 'personnel', icon: Users, label: 'Personnel' },
     { id: 'admin', icon: Shield, label: 'Admin' },
   ];
 

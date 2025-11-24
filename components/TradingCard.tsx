@@ -1,13 +1,97 @@
 
 import React, { useState } from 'react';
-import { StandardCard, ThemeConfig, ElementType } from '../types';
-import { MousePointer2, Star, FileText, Box, Layers, Terminal, Ruler, FileCode, HardDrive, Copy, Check, ExternalLink, Book, MoreVertical, ScanLine, Hash, Activity, RefreshCw, ShieldCheck, User } from 'lucide-react';
+import { StandardCard, ThemeConfig, ElementType, SvgNode, CadVector } from '../types';
+import { MousePointer2, Star, FileText, Box, Layers, Terminal, Ruler, FileCode, HardDrive, Copy, Check, ExternalLink, Book, MoreVertical, ScanLine, Hash, Activity, RefreshCw, ShieldCheck, User, Database, Cpu, Loader2, ChevronRight } from 'lucide-react';
+import { generateCategoryLore } from '../services/geminiService';
+
+// Helper to render nested SVG nodes recursively
+// Extracted outside component to avoid recreation and enable efficient memoization
+const renderSvgNode = (node: SvgNode, index: number) => {
+    const { tag, attrs, children, content } = node;
+    const TagName = tag as React.ElementType;
+    const props: any = { ...attrs, key: index };
+    
+    if (props.class) { props.className = props.class; delete props.class; }
+    if (props['stroke-width']) { props.strokeWidth = props['stroke-width']; delete props['stroke-width']; }
+    if (props['stroke-linecap']) { props.strokeLinecap = props['stroke-linecap']; delete props['stroke-linecap']; }
+    if (props['stroke-linejoin']) { props.strokeLinejoin = props['stroke-linejoin']; delete props['stroke-linejoin']; }
+
+    return (
+        <TagName {...props}>
+            {content}
+            {children && children.map((child: SvgNode, i: number) => renderSvgNode(child, i))}
+        </TagName>
+    );
+};
+
+interface CadViewerProps {
+    previewSvg?: CadVector;
+    category: ElementType;
+    textColorClass: string;
+    animated: boolean;
+    hoverEffect: boolean;
+    size?: number; // Size override for fallback icons
+}
+
+// Memoized component for efficient SVG rendering
+const CadViewer = React.memo(({ previewSvg, category, textColorClass, animated, hoverEffect, size }: CadViewerProps) => {
+    // Using SVG data if available
+    if (previewSvg) {
+        const { viewBox, paths, elements } = previewSvg;
+        
+        const animateClass = animated ? 'animate-enter-draw' : '';
+        const hoverClass = hoverEffect ? 'group-hover:scale-110' : '';
+
+        return (
+            <svg 
+              viewBox={viewBox} 
+              className={`
+                w-full h-full transition-transform duration-500 ease-out
+                ${animateClass}
+                ${hoverClass}
+                ${textColorClass}
+              `}
+              fill="none" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+                {elements && elements.map((node, i) => renderSvgNode(node, i))}
+                {!elements && paths && paths.map((p, i) => (
+                    <path 
+                        key={i} 
+                        d={p.d} 
+                        stroke="currentColor" 
+                        strokeWidth={p.strokeWidth || 1.5}
+                        fill={p.fill || 'none'}
+                        className="transition-all duration-500"
+                        style={{ opacity: p.opacity || 1 }}
+                    />
+                ))}
+            </svg>
+        );
+    }
+
+    // Fallback Icon
+    const iconSize = size || 48;
+    const className = `${textColorClass} opacity-80`;
+    const props = { size: iconSize, strokeWidth: 1.5, className };
+    
+    switch (category) {
+      case ElementType.LAYERS: return <Layers {...props} />;
+      case ElementType.MACROS: return <Terminal {...props} />;
+      case ElementType.SYMBOLS: return <Box {...props} />;
+      case ElementType.BLOCKS: return <Box {...props} />;
+      case ElementType.DETAILS: return <Ruler {...props} />;
+      case ElementType.SPECIFICATIONS: return <Book {...props} />;
+      default: return <FileText {...props} />;
+    }
+});
 
 interface TradingCardProps {
   card: StandardCard;
   description?: string;
   theme: ThemeConfig;
-  variant?: 'gallery' | 'zoomed';
+  variant?: 'gallery' | 'zoomed' | 'list';
   onZoom?: () => void;
   onClose?: () => void;
   onToggleFavorite?: (id: string) => void;
@@ -16,10 +100,10 @@ interface TradingCardProps {
 export const TradingCard: React.FC<TradingCardProps> = ({ card, description, theme, variant = 'gallery', onZoom, onClose, onToggleFavorite }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [lore, setLore] = useState<string | null>(null);
+  const [loadingLore, setLoadingLore] = useState(false);
   
   // Determine layout mode based on category
-  // Visual: SYMBOLS, BLOCKS, DETAILS (Focus on Geometry)
-  // Data: LAYERS, MACROS, SPECS (Focus on Attributes/Text)
   const isVisualCategory = [ElementType.SYMBOLS, ElementType.BLOCKS, ElementType.DETAILS].includes(card.category);
 
   // Determine which description to show: prop override > card data
@@ -37,9 +121,10 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (variant === 'gallery' && onZoom) {
+    if ((variant === 'gallery' || variant === 'list') && onZoom) {
       onZoom();
     } else if (variant === 'zoomed') {
+      // Only flip if not clicking specific interactive elements (handled by stopPropagation in children)
       handleFlip();
     }
   };
@@ -58,68 +143,101 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
     }
   };
 
-  // Helper to get border/text color class from theme base color
-  // For text, we typically want the 400 or 500 shade which matches baseColor
+  const handleFetchLore = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (lore) return; // Already fetched
+    
+    setLoadingLore(true);
+    try {
+        const text = await generateCategoryLore(card.category);
+        setLore(text);
+    } catch (error) {
+        setLore("Error retrieving archive data.");
+    } finally {
+        setLoadingLore(false);
+    }
+  };
+
   const borderColorClass = theme.baseColor.replace('bg-', 'border-');
   const textColorClass = theme.baseColor.replace('bg-', 'text-');
   const hoverBorderClass = theme.baseColor.replace('bg-', 'hover:border-');
 
-  // Render either the CAD SVG or a fallback icon
-  const renderPreview = (sizeOverride?: number, staticPreview: boolean = false) => {
-    // Using SVG data if available
-    if (card.previewSvg) {
-        const { viewBox, paths } = card.previewSvg;
-        
-        // For Data cards, we use a simpler, non-animated rendering style
-        const animateClass = !staticPreview && variant === 'zoomed' ? 'animate-enter-draw' : '';
-        const hoverClass = !staticPreview && variant === 'gallery' ? 'group-hover:scale-110' : '';
+  // ============================================================================
+  // LIST VARIANT (COMPACT ROW)
+  // ============================================================================
+  if (variant === 'list') {
+    return (
+        <div 
+            onClick={handleClick}
+            className={`
+                group flex items-center gap-4 p-3 bg-[#18181b] border-b border-white/5 
+                hover:bg-white/5 transition-colors cursor-pointer relative overflow-hidden
+            `}
+        >
+            {/* Hover Status Bar */}
+            <div className={`absolute left-0 top-0 bottom-0 w-1 ${theme.baseColor} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
 
-        return (
-            <svg 
-              viewBox={viewBox} 
-              className={`
-                w-full h-full transition-transform duration-500 ease-out
-                ${animateClass}
-                ${hoverClass}
-                ${textColorClass}
-              `}
-              fill="none" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-                {paths && paths.map((p, i) => (
-                    <path 
-                        key={i} 
-                        d={p.d} 
-                        stroke="currentColor" 
-                        strokeWidth={p.strokeWidth || 1.5}
-                        fill={p.fill || 'none'}
-                        className="transition-all duration-500"
-                        style={{ opacity: p.opacity || 1 }}
+            {/* Icon Column */}
+            <div className="w-10 h-10 shrink-0 bg-black/20 rounded border border-white/5 flex items-center justify-center">
+                <div className="w-6 h-6">
+                    <CadViewer 
+                        previewSvg={card.previewSvg}
+                        category={card.category}
+                        textColorClass={textColorClass}
+                        animated={false}
+                        hoverEffect={false}
+                        size={24}
                     />
-                ))}
-            </svg>
-        );
-    }
+                </div>
+            </div>
 
-    // Fallback
-    const size = sizeOverride || (variant === 'gallery' ? 48 : 72);
-    const className = `${textColorClass} opacity-80`;
-    const props = { size, strokeWidth: 1.5, className };
-    
-    switch (card.category) {
-      case 'LAYERS': return <Layers {...props} />;
-      case 'MACROS': return <Terminal {...props} />;
-      case 'SYMBOLS': return <Box {...props} />;
-      case 'BLOCKS': return <Box {...props} />;
-      case 'DETAILS': return <Ruler {...props} />;
-      case 'SPECIFICATIONS': return <Book {...props} />;
-      default: return <FileText {...props} />;
-    }
-  };
+            {/* ID Column */}
+            <div className="w-24 shrink-0">
+                <div className="text-[10px] font-bold font-mono text-neutral-500">{card.id}</div>
+            </div>
+
+            {/* Title & Desc Column */}
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <h4 className={`text-sm font-bold text-[var(--text-main)] group-hover:${textColorClass} truncate`}>
+                        {card.title}
+                    </h4>
+                    {card.isNew && <div className="w-2 h-2 rounded-full bg-emerald-500"></div>}
+                </div>
+                <p className="text-xs text-neutral-500 truncate pr-4">{displayDescription}</p>
+            </div>
+
+            {/* SubCategory Badge */}
+            <div className="w-32 hidden md:flex shrink-0">
+                 <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border border-white/5 rounded bg-white/5 text-neutral-400`}>
+                    {card.subCategory}
+                 </span>
+            </div>
+
+            {/* Stats / Filename */}
+            <div className="w-40 hidden lg:block shrink-0 text-right pr-4">
+                 <div className="text-[10px] font-mono text-neutral-500 truncate">{card.filename}</div>
+                 <div className="text-[9px] text-neutral-600">Usage: {card.stats.usage}%</div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 shrink-0 pl-2 border-l border-white/10">
+                 <button 
+                    onClick={handleStarClick}
+                    className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                 >
+                    <Star size={14} className={card.isFavorite ? "fill-amber-400 text-amber-400" : "text-neutral-600 hover:text-white"} />
+                 </button>
+                 <button className="p-2 text-neutral-600 hover:text-white transition-colors">
+                    <ChevronRight size={16} />
+                 </button>
+            </div>
+        </div>
+    );
+  }
 
   // ============================================================================
-  // GALLERY VARIANT (UNIFIED LAYOUT)
+  // GALLERY VARIANT (CARD)
   // ============================================================================
   if (variant === 'gallery') {
     return (
@@ -127,7 +245,7 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
         onClick={handleClick}
         className={`
           group relative w-full aspect-[4/3] 
-          bg-[var(--bg-card)] rounded-sm overflow-hidden
+          bg-[#18181b] rounded-sm overflow-hidden
           border border-[var(--border-main)]
           transition-all duration-300 cursor-pointer
           flex flex-col shadow-md
@@ -167,7 +285,14 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
                     {/* Background Grid for Visuals */}
                     <div className="absolute inset-2 border border-[var(--border-subtle)] bg-white/[0.02] rounded-sm"></div>
                     <div className="relative w-full h-full z-10">
-                        {renderPreview()}
+                        <CadViewer 
+                            previewSvg={card.previewSvg}
+                            category={card.category}
+                            textColorClass={textColorClass}
+                            animated={false}
+                            hoverEffect={true}
+                            size={48}
+                        />
                     </div>
                  </div>
              ) : (
@@ -177,7 +302,7 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
                      <div className="relative z-10 flex-1 overflow-hidden group-hover:overflow-y-auto custom-scrollbar pr-8 pt-1">
                         <p className={`
                             text-xs leading-relaxed font-medium text-neutral-500 dark:text-neutral-400 
-                            group-hover:${textColorClass} 
+                            group-hover:${textColorClass} group-hover:text-left group-hover:line-clamp-none line-clamp-4
                             transition-colors
                         `}>
                            {displayDescription}
@@ -186,7 +311,14 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
 
                      {/* Static Icon - Positioned Top Right, Small & Static */}
                      <div className="absolute top-0 right-0 w-8 h-8 opacity-60 pointer-events-none">
-                        {renderPreview(32, true)}
+                        <CadViewer 
+                            previewSvg={card.previewSvg}
+                            category={card.category}
+                            textColorClass={textColorClass}
+                            animated={false}
+                            hoverEffect={false}
+                            size={32}
+                        />
                      </div>
                  </div>
              )}
@@ -220,7 +352,7 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
        <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
           
           {/* ================= FRONT FACE ================= */}
-          <div className="absolute inset-0 backface-hidden bg-[var(--bg-card)] border border-[var(--border-main)] rounded-sm shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden">
+          <div className="absolute inset-0 backface-hidden bg-[#18181b] border border-[var(--border-main)] rounded-sm shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden">
              
              {/* Status Bar */}
              <div className="h-1.5 w-full flex">
@@ -284,7 +416,14 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
                             
                             {/* The SVG Itself */}
                             <div className="w-36 h-36 md:w-52 md:h-52 drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]">
-                                {renderPreview(undefined, false)}
+                                <CadViewer 
+                                    previewSvg={card.previewSvg}
+                                    category={card.category}
+                                    textColorClass={textColorClass}
+                                    animated={true}
+                                    hoverEffect={false}
+                                    size={72}
+                                />
                             </div>
                         </div>
                         
@@ -300,7 +439,14 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
                         {/* Static Icon Header */}
                         <div className="flex items-center gap-6 mb-8">
                              <div className={`w-24 h-24 p-5 rounded-xl border border-white/10 bg-black/20 shadow-inner flex items-center justify-center ${textColorClass}`}>
-                                {renderPreview(undefined, true)}
+                                <CadViewer 
+                                    previewSvg={card.previewSvg}
+                                    category={card.category}
+                                    textColorClass={textColorClass}
+                                    animated={false}
+                                    hoverEffect={false}
+                                    size={72}
+                                />
                              </div>
                              <div className="space-y-2">
                                 <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">System UUID</div>
@@ -363,7 +509,7 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
           {/* ================= BACK FACE (Specification) ================= */}
           <div className={`
              absolute inset-0 backface-hidden rotate-y-180 
-             bg-[var(--bg-card)] border border-[var(--border-main)] rounded-sm shadow-[0_0_40px_rgba(0,0,0,0.8)]
+             bg-[#18181b] border border-[var(--border-main)] rounded-sm shadow-[0_0_40px_rgba(0,0,0,0.8)]
              flex flex-col overflow-hidden text-neutral-300
           `}>
              {/* Top Bar */}
@@ -461,6 +607,47 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
                             </div>
                         </div>
                     )}
+                    
+                    {/* Section 4: Mainframe Archives (AI Lore) */}
+                    <div>
+                        <h3 className={`text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2 ${textColorClass} opacity-80`}>
+                            <Cpu size={12}/> Mainframe Archives
+                        </h3>
+                        
+                        {!lore ? (
+                            <button 
+                                onClick={handleFetchLore}
+                                disabled={loadingLore}
+                                className={`
+                                    w-full p-4 border border-dashed border-white/20 rounded bg-white/5 
+                                    hover:bg-white/10 hover:border-${theme.baseColor.split('-')[1]}-500/50 
+                                    transition-all flex items-center justify-center gap-3 text-neutral-400 hover:text-white
+                                    group
+                                `}
+                            >
+                                {loadingLore ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin text-neutral-500" />
+                                        <span className="text-[10px] font-mono animate-pulse">DECRYPTING ARCHIVES...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Database size={16} className={`group-hover:${textColorClass}`} />
+                                        <span className="text-[10px] font-mono uppercase tracking-widest">Retrieve Historical Log</span>
+                                    </>
+                                )}
+                            </button>
+                        ) : (
+                            <div className="p-4 bg-black/40 border border-white/10 rounded relative overflow-hidden animate-in fade-in duration-500">
+                                <div className={`absolute top-0 left-0 w-1 h-full ${theme.baseColor}`}></div>
+                                <p className="text-[10px] leading-relaxed text-neutral-400 font-mono">
+                                    <span className={`${textColorClass} font-bold mr-2`}>root@sys:~$</span>
+                                    {lore}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
                  </div>
              </div>
 

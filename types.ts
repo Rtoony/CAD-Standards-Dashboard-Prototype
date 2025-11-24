@@ -70,6 +70,7 @@ export interface UserPreferences {
   highContrast: boolean;
   defaultExport: 'DWG' | 'PDF' | 'DXF';
   notifications: boolean;
+  colorTheme?: 'default' | 'copper' | 'verdant' | 'steel';
 }
 
 export interface UserProfile {
@@ -107,4 +108,46 @@ export interface ToolItem {
   iconName: string; // Lucide icon name
   status: 'LIVE' | 'BETA' | 'PLANNED';
   isWidget?: boolean; // If true, renders inline
+}
+
+// --- PROJECT MODULE TYPES ---
+
+export type ProjectStatus = 'ACTIVE' | 'HOLD' | 'COMPLETED' | 'ARCHIVED' | 'BIDDING';
+
+export interface ProjectTeamMember {
+  id: string;
+  name: string;
+  role: string; // PM, Lead, Drafter
+  avatarUrl?: string;
+}
+
+export interface Project {
+  id: string; // Job Number e.g., 24-105
+  name: string;
+  client: string;
+  location: string;
+  status: ProjectStatus;
+  phase: string; // "Design Development", "Construction Docs", "Permitting"
+  progress: number; // 0-100
+  dueDate: string;
+  manager: ProjectTeamMember;
+  team: ProjectTeamMember[];
+  tags: string[];
+}
+
+// --- PERSONNEL MODULE TYPES ---
+
+export type EmployeeStatus = 'ACTIVE' | 'FIELD' | 'REMOTE' | 'LEAVE' | 'MEETING';
+
+export interface Employee {
+  id: string;
+  name: string;
+  title: string;
+  department: 'Engineering' | 'Surveying' | 'Admin' | 'GIS' | 'Management';
+  email: string;
+  phone: string;
+  location: string; // Physical office/site
+  status: EmployeeStatus;
+  avatarUrl: string;
+  skills: string[];
 }

@@ -6,19 +6,22 @@ import { GlobalNav } from './components/GlobalNav';
 import { UserPanel } from './components/UserPanel';
 import { HomeModule } from './components/HomeModule';
 import { ToolsModule } from './components/ToolsModule';
+import { ProjectsModule } from './components/ProjectsModule';
+import { PersonnelModule } from './components/PersonnelModule';
 import { THEMES, SIDEBAR_BUTTONS, SUB_CATEGORIES } from './constants';
 import { DataService } from './services/dataService';
 import { ElementType, SidebarFilter, UserProfile, UserPreferences, StandardCard } from './types';
-import { X, Search, ChevronDown, Filter, LayoutGrid, List, User as UserIcon, Loader2, Terminal, Star } from 'lucide-react';
+import { X, Search, ChevronDown, Filter, LayoutGrid, List, User as UserIcon, Loader2, Terminal, Star, ArrowUp, ArrowDown } from 'lucide-react';
 
 const App: React.FC = () => {
   // --- Theme Management ---
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // --- User State ---
   const [currentUser, setCurrentUser] = useState<UserProfile>({
     id: 'SUR-007',
-    name: 'Sir R. Toony',
+    name: 'Rtoony',
     title: 'Senior Lead Surveyor',
     department: 'Surveying & Geomatics',
     email: 'R.Toony@acmecivilsurvey.com',
@@ -26,7 +29,8 @@ const App: React.FC = () => {
     startDate: 'Jan 12, 1988',
     status: 'Active, Grumbling',
     level: 10, // The Legend
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Toony&clothing=graphicShirt&accessories=eyepatch&top=curlyShort&hairColor=black&facialHair=beardMedium&skinColor=tanned',
+    // Middle-aged, bearded white man, disgruntled
+    avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=SirRToony&skinColor=f2d3b1&hair=short12&hairColor=856f5d&beard=variant12&beardProbability=100&glasses=variant02&eyebrows=variant12&mouth=variant10&backgroundColor=b6e3f4',
     bio: "Sir R. Toony is the bedrock of our Geomatics department—a man carved from granite and fueled by questionable coffee. He has been mapping this landscape since before half the current staff were born.",
     quote: "If you need a field problem solved, bring me a fresh mug.",
     expertise: [
@@ -46,6 +50,7 @@ const App: React.FC = () => {
   const [showUserPanel, setShowUserPanel] = useState(false);
   const [activeModule, setActiveModule] = useState('library');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [imgError, setImgError] = useState(false);
 
   // --- App State ---
   const [activeCategory, setActiveCategory] = useState<ElementType>(ElementType.LAYERS); 
@@ -54,7 +59,7 @@ const App: React.FC = () => {
   const [sidebarFilter, setSidebarFilter] = useState<SidebarFilter>('ALL');
   const [zoomedCardId, setZoomedCardId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortMode, setSortMode] = useState<'NAME_ASC' | 'NAME_DESC' | 'USAGE_DESC' | 'USAGE_ASC' | 'DATE_ASC' | 'DATE_DESC'>('NAME_ASC');
+  const [sortMode, setSortMode] = useState<'NAME_ASC' | 'NAME_DESC' | 'USAGE_DESC' | 'USAGE_ASC' | 'DATE_ASC' | 'DATE_DESC' | 'ID_ASC' | 'ID_DESC'>('NAME_ASC');
   
   // Data State
   const [allCards, setAllCards] = useState<StandardCard[]>([]);
@@ -71,12 +76,6 @@ const App: React.FC = () => {
             console.error("Failed to parse favorites", e);
         }
     }
-  }, []);
-
-  // Apply Theme Class to Body
-  useEffect(() => {
-      // In a real app, we might use a context provider, but this works for the prototype
-      // We rely on the GlobalNav to toggle the class on the body, but we track state here if needed
   }, []);
 
   // Load Data when Category Changes
@@ -176,6 +175,32 @@ const App: React.FC = () => {
       setSidebarFilter('ALL'); // Resets sidebar buttons
   };
 
+  const toggleSort = (field: 'ID' | 'NAME' | 'USAGE') => {
+    if (field === 'ID') {
+        setSortMode(sortMode === 'ID_ASC' ? 'ID_DESC' : 'ID_ASC');
+    } else if (field === 'NAME') {
+        setSortMode(sortMode === 'NAME_ASC' ? 'NAME_DESC' : 'NAME_ASC');
+    } else if (field === 'USAGE') {
+        setSortMode(sortMode === 'USAGE_DESC' ? 'USAGE_ASC' : 'USAGE_DESC');
+    }
+  };
+
+  const getSortIcon = (field: 'ID' | 'NAME' | 'USAGE') => {
+      if (field === 'ID') {
+          if (sortMode === 'ID_ASC') return <ArrowUp size={12} className="text-white"/>;
+          if (sortMode === 'ID_DESC') return <ArrowDown size={12} className="text-white"/>;
+      }
+      if (field === 'NAME') {
+          if (sortMode === 'NAME_ASC') return <ArrowUp size={12} className="text-white"/>;
+          if (sortMode === 'NAME_DESC') return <ArrowDown size={12} className="text-white"/>;
+      }
+      if (field === 'USAGE') {
+          if (sortMode === 'USAGE_ASC') return <ArrowUp size={12} className="text-white"/>;
+          if (sortMode === 'USAGE_DESC') return <ArrowDown size={12} className="text-white"/>;
+      }
+      return <div className="w-3 h-3"></div>; // Spacer
+  };
+
 
   // --- Filter Application ---
   const activeTheme = THEMES[activeCategory];
@@ -206,6 +231,8 @@ const App: React.FC = () => {
       switch (sortMode) {
         case 'NAME_ASC': return a.title.localeCompare(b.title);
         case 'NAME_DESC': return b.title.localeCompare(a.title);
+        case 'ID_ASC': return a.id.localeCompare(b.id, undefined, {numeric: true});
+        case 'ID_DESC': return b.id.localeCompare(a.id, undefined, {numeric: true});
         case 'USAGE_DESC': return b.stats.usage - a.stats.usage;
         case 'USAGE_ASC': return a.stats.usage - b.stats.usage;
         case 'DATE_ASC': return (a.lastModified || 0) - (b.lastModified || 0);
@@ -226,29 +253,56 @@ const App: React.FC = () => {
       {/* 1. Global Navigation (Leftmost Strip) */}
       <GlobalNav activeModule={activeModule} onNavigate={setActiveModule} />
 
-      {/* 2. User Panel Popup (Global) */}
-      <div className="fixed top-6 right-6 z-[100]">
-        <div className="relative">
+      {/* 2. User Badge (Centered Top) */}
+      {/* Centered relative to the content area (offset by 4rem sidebar) */}
+      <div className="fixed top-4 left-[calc(50%+2rem)] -translate-x-1/2 z-[50]">
+        <div className="relative group">
             <button 
                 onClick={() => setShowUserPanel(!showUserPanel)}
-                className={`flex items-center gap-3 pl-1 pr-3 py-1 rounded-full border transition-all duration-200 ${showUserPanel ? 'bg-[var(--bg-card)] border-indigo-500/50' : 'bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--text-muted)]'}`}
+                className={`
+                    flex items-center gap-4 pl-3 pr-6 py-2.5 rounded-full border transition-all duration-300 cursor-pointer shadow-2xl
+                    ${showUserPanel 
+                        ? 'bg-[#18181b] border-indigo-500 ring-2 ring-indigo-500/20 translate-y-1' 
+                        : 'bg-[#09090b] border-white/10 hover:border-indigo-500/50 hover:bg-[#18181b]'}
+                `}
             >
-                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold border-2 border-indigo-500 shadow-sm overflow-hidden">
-                    {currentUser.avatarUrl ? (
-                        <img src={currentUser.avatarUrl} className="w-full h-full object-cover" alt="User"/>
+                {/* Avatar Circle - bg-white ensures transparent PNGs show up */}
+                <div className="w-12 h-12 rounded-full bg-white border-2 border-indigo-500 shadow-lg overflow-hidden shrink-0 relative z-10 flex items-center justify-center">
+                    {!imgError ? (
+                        <img 
+                            src={currentUser.avatarUrl} 
+                            className="w-full h-full object-cover" 
+                            alt="User"
+                            onError={() => setImgError(true)}
+                            crossOrigin="anonymous"
+                        />
                     ) : (
-                        <UserIcon size={16} />
+                        <UserIcon size={24} className="text-indigo-500/50"/>
                     )}
                 </div>
-                <div className="text-left hidden xl:block">
-                    <div className="text-xs text-[var(--text-main)] font-bold leading-none mb-0.5">{currentUser.name}</div>
-                    <div className="text-[9px] text-[var(--text-muted)] font-mono leading-none">ID: {currentUser.id}</div>
+                
+                {/* Text Info */}
+                <div className="text-left flex flex-col">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white tracking-tight leading-none">{currentUser.name}</span>
+                        <div className="px-1.5 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/30 text-[9px] font-mono font-bold text-indigo-300 uppercase tracking-wider">
+                            {currentUser.id}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wide">{currentUser.status}</span>
+                    </div>
                 </div>
+
+                {/* Decorative Elements */}
+                <div className="absolute inset-x-6 -bottom-px h-px bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </button>
             
             {showUserPanel && (
                 <>
-                <div className="fixed inset-0 z-[-1] bg-transparent" onClick={() => setShowUserPanel(false)}></div>
+                {/* Backdrop to close */}
+                <div className="fixed inset-0 z-[-1] cursor-default bg-black/20 backdrop-blur-[1px]" onClick={() => setShowUserPanel(false)}></div>
                 <UserPanel 
                     user={currentUser} 
                     onClose={() => setShowUserPanel(false)} 
@@ -264,6 +318,10 @@ const App: React.FC = () => {
          <HomeModule user={currentUser} onNavigate={setActiveModule} />
       ) : activeModule === 'tools' ? (
          <ToolsModule />
+      ) : activeModule === 'projects' ? (
+         <ProjectsModule />
+      ) : activeModule === 'personnel' ? (
+         <PersonnelModule />
       ) : activeModule === 'library' ? (
         <>
             {/* Library Sidebar */}
@@ -293,15 +351,21 @@ const App: React.FC = () => {
                         </h1>
                         
                         {/* Top Right Actions (View Toggles Only Now) */}
-                        <div className="flex gap-4 items-center mr-40">
+                        <div className="flex gap-4 items-center">
                             {/* View Toggles */}
                             <div className="flex gap-2 bg-[var(--bg-card)] p-1 rounded-lg border border-[var(--border-subtle)]">
-                                <div className="h-8 w-8 rounded bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-main)] shadow-sm cursor-pointer">
+                                <button 
+                                    onClick={() => setViewMode('grid')}
+                                    className={`h-8 w-8 rounded flex items-center justify-center transition-colors ${viewMode === 'grid' ? 'bg-[var(--bg-main)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                >
                                     <LayoutGrid size={16} />
-                                </div>
-                                <div className="h-8 w-8 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer transition-colors">
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode('list')}
+                                    className={`h-8 w-8 rounded flex items-center justify-center transition-colors ${viewMode === 'list' ? 'bg-[var(--bg-main)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                >
                                     <List size={16} />
-                                </div>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -416,6 +480,8 @@ const App: React.FC = () => {
                             >
                                 <option value="NAME_ASC">Name (A-Z)</option>
                                 <option value="NAME_DESC">Name (Z-A)</option>
+                                <option value="ID_ASC">ID (Ascending)</option>
+                                <option value="ID_DESC">ID (Descending)</option>
                                 <option value="USAGE_DESC">Usage (High)</option>
                                 <option value="USAGE_ASC">Usage (Low)</option>
                                 <option value="DATE_DESC">Newest First</option>
@@ -426,7 +492,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Content Grid */}
+                {/* Content Grid / List */}
                 <div className="flex-1 overflow-y-auto p-8 relative custom-scrollbar">
                     {isLoading ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-neutral-500 z-20 bg-[var(--bg-main)]/80 backdrop-blur-sm">
@@ -444,40 +510,96 @@ const App: React.FC = () => {
                            </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-20">
-                            {filteredCards.length > 0 ? (
-                            filteredCards.map((card) => (
-                                <TradingCard 
-                                key={card.id} 
-                                card={card} 
-                                theme={activeTheme} 
-                                variant="gallery"
-                                onZoom={() => handleZoomCard(card.id)}
-                                onToggleFavorite={toggleFavorite}
-                                />
-                            ))
-                            ) : (
-                            <div className="col-span-full flex flex-col items-center justify-center h-96 text-neutral-600">
-                                <div className="p-6 rounded-full bg-white/5 mb-4">
-                                    <Search size={48} strokeWidth={1.5} />
+                        <>
+                        {viewMode === 'grid' ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-20">
+                                {filteredCards.length > 0 ? (
+                                filteredCards.map((card) => (
+                                    <TradingCard 
+                                    key={card.id} 
+                                    card={card} 
+                                    theme={activeTheme} 
+                                    variant="gallery"
+                                    onZoom={() => handleZoomCard(card.id)}
+                                    onToggleFavorite={toggleFavorite}
+                                    />
+                                ))
+                                ) : (
+                                <div className="col-span-full flex flex-col items-center justify-center h-96 text-neutral-600">
+                                    <div className="p-6 rounded-full bg-white/5 mb-4">
+                                        <Search size={48} strokeWidth={1.5} />
+                                    </div>
+                                    <p className="text-lg font-medium text-[var(--text-muted)]">No standards found</p>
+                                    <p className="text-sm font-mono">Adjust your filters to broaden search</p>
                                 </div>
-                                <p className="text-lg font-medium text-[var(--text-muted)]">No standards found</p>
-                                <p className="text-sm font-mono">Adjust your filters to broaden search</p>
+                                )}
                             </div>
-                            )}
-                        </div>
+                        ) : (
+                            <div className="bg-[#18181b] border border-[var(--border-main)] rounded-sm overflow-hidden pb-20">
+                                {/* List Header with Sorting */}
+                                <div className="flex items-center gap-4 px-3 py-2 bg-black/20 border-b border-white/5 text-[10px] font-bold uppercase text-neutral-500 font-mono select-none">
+                                     <div className="w-10 text-center">Icon</div>
+                                     
+                                     {/* ID Sort */}
+                                     <button 
+                                        onClick={() => toggleSort('ID')} 
+                                        className="w-24 text-left hover:text-white flex items-center gap-1 transition-colors"
+                                        title="Sort by ID"
+                                     >
+                                        ID {getSortIcon('ID')}
+                                     </button>
+
+                                     {/* Name Sort */}
+                                     <button 
+                                        onClick={() => toggleSort('NAME')} 
+                                        className="flex-1 text-left hover:text-white flex items-center gap-1 transition-colors"
+                                        title="Sort by Name"
+                                     >
+                                        Title / Description {getSortIcon('NAME')}
+                                     </button>
+
+                                     {/* SubCat - Static */}
+                                     <div className="w-32 hidden md:block">Sub-Category</div>
+
+                                     {/* Usage Sort */}
+                                     <button 
+                                        onClick={() => toggleSort('USAGE')} 
+                                        className="w-40 hidden lg:block text-right pr-4 hover:text-white flex items-center justify-end gap-1 transition-colors"
+                                        title="Sort by Usage"
+                                     >
+                                        {getSortIcon('USAGE')} Usage
+                                     </button>
+
+                                     <div className="w-16 pl-2">Actions</div>
+                                </div>
+                                {filteredCards.length > 0 ? (
+                                    filteredCards.map((card) => (
+                                        <TradingCard 
+                                            key={card.id} 
+                                            card={card} 
+                                            theme={activeTheme} 
+                                            variant="list"
+                                            onZoom={() => handleZoomCard(card.id)}
+                                            onToggleFavorite={toggleFavorite}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className="p-8 text-center text-neutral-500">No results found.</div>
+                                )}
+                            </div>
+                        )}
+                        </>
                     )}
                 </div>
 
             </main>
         </>
       ) : (
-          // Fallback for other modules
+          // Fallback for other modules (Admin)
           <div className="flex-1 flex flex-col items-center justify-center bg-[#121212] text-neutral-500">
              <div className="p-8 border border-dashed border-neutral-800 rounded-2xl text-center max-w-md">
                 <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
-                   {activeModule === 'projects' && <List size={32} />}
-                   {activeModule === 'admin' && <UserIcon size={32} />}
+                   <UserIcon size={32} />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-wider">
                     {activeModule} Module
@@ -498,7 +620,7 @@ const App: React.FC = () => {
       {/* Modal Layer */}
       {zoomedCard && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 p-4"
           onClick={() => setZoomedCardId(null)}
         >
            <button 
