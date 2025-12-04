@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Project, ProjectStatus } from '../types';
 import { DataService } from '../services/dataService';
 import { ProjectFormModal } from './ProjectFormModal';
-import { Briefcase, Search, Filter, LayoutGrid, List, MapPin, Calendar, User, MoreVertical, FolderOpen, AlertCircle, CheckCircle2, Clock, Plus, Edit, Trash2 } from 'lucide-react';
+import { Briefcase, Search, Filter, LayoutGrid, List, MapPin, Calendar, User, MoreVertical, FolderOpen, AlertCircle, CheckCircle2, Clock, Plus, Edit, Trash2, FileText, Hash } from 'lucide-react';
 
 export const ProjectsModule: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -173,11 +173,11 @@ export const ProjectsModule: React.FC = () => {
                       {viewMode === 'grid' ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                               {filteredProjects.map(project => (
-                                  <div key={project.id} className="bg-[#18181b] border border-[var(--border-main)] rounded-sm group hover:border-indigo-500/50 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer relative overflow-hidden flex flex-col">
+                                  <div key={project.id} className="bg-[#18181b] border border-[var(--border-main)] rounded-sm group hover:border-indigo-500/50 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer relative overflow-hidden flex flex-col h-[340px]">
                                       {/* Top Status Bar */}
                                       <div className={`h-1 w-full ${getProgressColor(project.status)}`}></div>
                                       
-                                      <div className="p-5 flex-1">
+                                      <div className="p-5 flex-1 flex flex-col">
                                           <div className="flex justify-between items-start mb-4">
                                               <div>
                                                   <div className="font-mono text-xs text-indigo-400 font-bold mb-1">JOB #{project.id}</div>
@@ -188,7 +188,7 @@ export const ProjectsModule: React.FC = () => {
                                               </div>
                                           </div>
 
-                                          <div className="space-y-3 mb-6">
+                                          <div className="space-y-3 mb-4">
                                               <div className="flex items-start gap-3 text-xs text-neutral-400">
                                                   <User size={14} className="mt-0.5 shrink-0 opacity-70" />
                                                   <span className="line-clamp-1">{project.client}</span>
@@ -203,8 +203,29 @@ export const ProjectsModule: React.FC = () => {
                                               </div>
                                           </div>
 
+                                          {/* Tags */}
+                                          {project.tags && project.tags.length > 0 && (
+                                              <div className="flex flex-wrap gap-1.5 mb-3">
+                                                  {project.tags.slice(0, 3).map((tag, idx) => (
+                                                      <span key={idx} className="px-1.5 py-0.5 rounded bg-neutral-800 border border-white/5 text-[9px] text-neutral-400">
+                                                          {tag}
+                                                      </span>
+                                                  ))}
+                                                  {project.tags.length > 3 && (
+                                                      <span className="px-1.5 py-0.5 text-[9px] text-neutral-500">+{project.tags.length - 3}</span>
+                                                  )}
+                                              </div>
+                                          )}
+
+                                          {/* Description Snippet */}
+                                          <div className="mt-auto mb-4 bg-black/20 p-2 rounded border border-white/5">
+                                              <p className="text-[10px] text-neutral-500 leading-relaxed line-clamp-2 italic">
+                                                 "{project.description || 'No description available.'}"
+                                              </p>
+                                          </div>
+
                                           {/* Progress */}
-                                          <div className="mb-4">
+                                          <div>
                                               <div className="flex justify-between text-[10px] font-mono text-neutral-500 uppercase mb-1">
                                                   <span>Phase: {project.phase}</span>
                                                   <span>{project.progress}%</span>
@@ -216,7 +237,7 @@ export const ProjectsModule: React.FC = () => {
                                       </div>
                                           
                                       {/* Footer */}
-                                      <div className="p-4 pt-3 border-t border-white/5 flex justify-between items-center mt-auto bg-black/10">
+                                      <div className="p-4 pt-3 border-t border-white/5 flex justify-between items-center bg-black/10">
                                           <div className="flex -space-x-2">
                                               <div className="w-6 h-6 rounded-full bg-neutral-700 border border-[#18181b] flex items-center justify-center text-[10px] font-bold text-white" title={project.manager.name}>
                                                   {project.manager.name.charAt(0)}
@@ -252,9 +273,9 @@ export const ProjectsModule: React.FC = () => {
                                       <tr>
                                           <th className="p-4 font-medium">Job #</th>
                                           <th className="p-4 font-medium">Project Name</th>
+                                          <th className="p-4 font-medium">Description</th>
                                           <th className="p-4 font-medium">Client</th>
                                           <th className="p-4 font-medium">Location</th>
-                                          <th className="p-4 font-medium">Phase</th>
                                           <th className="p-4 font-medium">Status</th>
                                           <th className="p-4 font-medium text-right">Progress</th>
                                           <th className="p-4 font-medium text-right">Actions</th>
@@ -265,9 +286,9 @@ export const ProjectsModule: React.FC = () => {
                                           <tr key={project.id} className="hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => handleEditStart(project)}>
                                               <td className="p-4 font-mono text-indigo-400 font-bold">{project.id}</td>
                                               <td className="p-4 font-bold">{project.name}</td>
+                                              <td className="p-4 text-xs text-neutral-500 max-w-xs truncate">{project.description}</td>
                                               <td className="p-4 text-neutral-400">{project.client}</td>
                                               <td className="p-4 text-neutral-400">{project.location}</td>
-                                              <td className="p-4 text-neutral-400">{project.phase}</td>
                                               <td className="p-4">
                                                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(project.status)}`}>
                                                       {project.status}

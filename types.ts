@@ -133,6 +133,7 @@ export interface Project {
   manager: ProjectTeamMember;
   team: ProjectTeamMember[];
   tags: string[];
+  description?: string; // AI Generated scope
 }
 
 // --- PERSONNEL MODULE TYPES ---

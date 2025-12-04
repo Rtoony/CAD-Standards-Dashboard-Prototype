@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Project, ProjectStatus } from '../types';
-import { X, Save, Briefcase, MapPin, Calendar, Activity, AlertCircle } from 'lucide-react';
+import { X, Save, Briefcase, MapPin, Calendar, Activity, AlertCircle, FileText, Bot, Sparkles, Loader2, Zap, Hash, Plus } from 'lucide-react';
+import { GoogleGenAI, Type } from "@google/genai";
 
 interface ProjectFormModalProps {
   mode: 'CREATE' | 'EDIT';
@@ -24,10 +25,18 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     phase: 'Design Development',
     progress: 0,
     dueDate: '',
+    description: '',
+    tags: [],
     ...initialData
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [tagInput, setTagInput] = useState("");
+  
+  // AI Generator State
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [projectPrompt, setProjectPrompt] = useState("");
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -44,15 +53,120 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     }
   };
 
+  const handleAddTag = () => {
+      if (tagInput.trim()) {
+          const newTags = [...(formData.tags || [])];
+          if (!newTags.includes(tagInput.trim())) {
+              newTags.push(tagInput.trim());
+              setFormData({ ...formData, tags: newTags });
+          }
+          setTagInput("");
+      }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+      setFormData({
+          ...formData,
+          tags: (formData.tags || []).filter(t => t !== tagToRemove)
+      });
+  };
+
+  const parseGenAIJson = (text: string | undefined) => {
+      if (!text) return {};
+      let cleaned = text.trim();
+      if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '');
+      if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```/, '').replace(/```$/, '');
+      try {
+          return JSON.parse(cleaned);
+      } catch (e) {
+          console.error("JSON Parse Error:", e);
+          return {};
+      }
+  };
+
+  const handleGenerateProject = async () => {
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) {
+          alert("API Key missing. Cannot access Genesis Engine.");
+          return;
+      }
+      if (!projectPrompt.trim()) {
+          alert("Please enter a project concept first.");
+          return;
+      }
+
+      setIsGenerating(true);
+      try {
+          const ai = new GoogleGenAI({ apiKey });
+          
+          const systemInstruction = `You are a Senior Project Manager at ACME Civil Engineering. 
+          Generate a detailed project scope based on a rough concept.
+          Tone: Professional, technical, but creative. Use industry terminology (grading, swale, retention, right-of-way).`;
+
+          const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: `Generate a civil engineering project based on this concept: "${projectPrompt}".
+              
+              Return JSON with:
+              1. name: A catchy but professional project name (e.g. "Coyote Creek Rehabilitation").
+              2. client: A realistic corporate or municipal client name.
+              3. location: A plausible city/state.
+              4. phase: Current project phase (e.g. "Permitting", "Design", "Construction").
+              5. tags: 3-4 short tags (e.g. "Water", "Structural").
+              6. description: A 2-3 sentence professional scope of work description.
+              `,
+              config: {
+                  systemInstruction,
+                  responseMimeType: "application/json",
+                  responseSchema: {
+                      type: Type.OBJECT,
+                      properties: {
+                          name: { type: Type.STRING },
+                          client: { type: Type.STRING },
+                          location: { type: Type.STRING },
+                          phase: { type: Type.STRING },
+                          tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                          description: { type: Type.STRING }
+                      },
+                      required: ["name", "client", "location", "phase", "description"]
+                  }
+              }
+          });
+
+          const data = parseGenAIJson(response.text);
+
+          if (data.name) {
+              setFormData(prev => ({
+                  ...prev,
+                  name: data.name,
+                  client: data.client,
+                  location: data.location,
+                  phase: data.phase,
+                  description: data.description,
+                  tags: data.tags || [],
+                  status: 'ACTIVE', // Default
+                  progress: 10 // Default start
+              }));
+          }
+
+      } catch (error) {
+          console.error("Project Generation Failed", error);
+          alert("Genesis Engine malfunction.");
+      } finally {
+          setIsGenerating(false);
+          setShowGenerator(false); // Close generator on success to show filled form
+      }
+  };
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-[#18181b] border border-indigo-500/50 rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative">
+      <div className="w-full max-w-lg bg-[#18181b] border border-indigo-500/50 rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative max-h-[90vh]">
         
         {/* Top Accent */}
         <div className="h-1 w-full bg-indigo-600"></div>
 
         {/* Header */}
-        <div className="p-6 border-b border-white/10 bg-[#121212] flex justify-between items-center">
+        <div className="p-6 border-b border-white/10 bg-[#121212] flex justify-between items-center shrink-0">
           <div>
             <div className="text-[10px] font-mono font-bold text-indigo-500 uppercase tracking-widest mb-1">
               Job Control
@@ -67,8 +181,49 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[70vh] custom-scrollbar">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
           
+          {/* AI Generator Toggle */}
+          <div className="mb-4">
+              {!showGenerator ? (
+                  <button 
+                    type="button"
+                    onClick={() => setShowGenerator(true)}
+                    className="w-full py-3 bg-gradient-to-r from-indigo-900/40 to-black border border-indigo-500/30 rounded flex items-center justify-center gap-2 text-indigo-300 font-bold uppercase text-xs tracking-wider hover:border-indigo-400 hover:text-white transition-all group"
+                  >
+                      <Sparkles size={14} /> Open Genesis Engine
+                  </button>
+              ) : (
+                  <div className="bg-indigo-500/10 border border-indigo-500/30 rounded p-4 animate-in slide-in-from-top-2 relative">
+                      <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-widest">
+                              <Zap size={14} className="fill-indigo-500" /> Project Genesis
+                          </div>
+                          <button type="button" onClick={() => setShowGenerator(false)} className="text-neutral-500 hover:text-white"><X size={14}/></button>
+                      </div>
+                      <p className="text-[10px] text-neutral-400 mb-3">
+                          Enter a vague concept and the AI will generate a full professional scope, client, and project details.
+                      </p>
+                      <textarea 
+                          value={projectPrompt}
+                          onChange={(e) => setProjectPrompt(e.target.value)}
+                          placeholder="e.g. Build a luxury hotel on Mars..."
+                          className="w-full p-3 bg-black/40 border border-white/10 rounded text-xs text-white placeholder:text-neutral-600 focus:border-indigo-500 focus:outline-none resize-none mb-3"
+                          rows={2}
+                      />
+                      <button 
+                        type="button"
+                        onClick={handleGenerateProject}
+                        disabled={isGenerating}
+                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg"
+                      >
+                          {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Bot size={14} />}
+                          Generate Scope
+                      </button>
+                  </div>
+              )}
+          </div>
+
           {/* ID Display (Read Only) */}
           {mode === 'EDIT' && (
               <div className="p-2 bg-white/5 border border-white/10 rounded flex justify-between items-center">
@@ -118,6 +273,57 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
                    className="w-full p-3 bg-[#09090b] border border-white/10 rounded text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors"
                 />
              </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+             <label className="text-[10px] font-bold uppercase text-neutral-500 tracking-wider flex items-center gap-2">
+                <FileText size={10} /> Scope Description
+             </label>
+             <textarea 
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Brief project scope and details..."
+                className="w-full p-3 bg-[#09090b] border border-white/10 rounded text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors resize-none"
+             />
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase text-neutral-500 tracking-wider flex items-center gap-2">
+                <Hash size={10} /> Project Tags
+            </label>
+            <div className="p-3 bg-[#09090b] border border-white/10 rounded">
+                <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.tags?.map((tag, idx) => (
+                        <span key={idx} className="flex items-center gap-1 px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
+                            {tag}
+                            <button onClick={() => handleRemoveTag(tag)} className="hover:text-white"><X size={10}/></button>
+                        </span>
+                    ))}
+                    {(!formData.tags || formData.tags.length === 0) && (
+                        <span className="text-neutral-600 text-xs italic">No tags added.</span>
+                    )}
+                </div>
+                <div className="flex gap-2">
+                    <input 
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                        placeholder="Add new tag..."
+                        className="flex-1 bg-black/40 border-b border-white/10 text-xs text-white p-1 focus:outline-none focus:border-indigo-500 transition-colors"
+                    />
+                    <button 
+                        type="button"
+                        onClick={handleAddTag}
+                        className="p-1 text-neutral-400 hover:text-white"
+                    >
+                        <Plus size={14}/>
+                    </button>
+                </div>
+            </div>
           </div>
 
           {/* Status & Due Date */}
@@ -184,7 +390,7 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         </form>
 
         {/* Footer Actions */}
-        <div className="p-6 bg-[#121212] border-t border-white/10 flex justify-end gap-3">
+        <div className="p-6 bg-[#121212] border-t border-white/10 flex justify-end gap-3 shrink-0">
            <button 
               onClick={onClose}
               className="px-4 py-2 rounded border border-white/10 text-neutral-400 hover:text-white hover:bg-white/5 transition-colors text-xs font-bold uppercase tracking-wider"

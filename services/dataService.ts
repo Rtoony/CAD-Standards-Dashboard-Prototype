@@ -97,7 +97,8 @@ let MOCK_PROJECTS: Project[] = [
         { id: 'sur1', name: 'R. Toony', role: 'Lead Surveyor' },
         { id: 'dr1', name: 'Mike D.', role: 'Drafter' }
     ],
-    tags: ['Residential', 'Grading', 'Storm']
+    tags: ['Residential', 'Grading', 'Storm'],
+    description: 'A 45-lot single family residential subdivision requiring full grading, drainage, and utility improvement plans. Includes a complex detention basin and off-site sewer force main extension.'
   },
   {
     id: '24-089',
@@ -112,7 +113,8 @@ let MOCK_PROJECTS: Project[] = [
     team: [
         { id: 'eng1', name: 'Jessica T.', role: 'Civil Lead' }
     ],
-    tags: ['Transportation', 'Public Works']
+    tags: ['Transportation', 'Public Works'],
+    description: 'Widening of 2.5 miles of Highway 101 from 2 to 3 lanes. Includes sound wall design, hydraulic study of two culvert crossings, and extensive right-of-way coordination.'
   },
   {
     id: '23-210',
@@ -127,7 +129,8 @@ let MOCK_PROJECTS: Project[] = [
     team: [
         { id: 'dr2', name: 'Tom H.', role: 'Drafter' }
     ],
-    tags: ['Commercial', 'Retrofit']
+    tags: ['Commercial', 'Retrofit'],
+    description: 'Seismic retrofit and ADA accessibility upgrades for the historic City Hall Annex building. Project scope included site grading for new ramp access and utility relocations.'
   },
   {
     id: '24-112',
@@ -140,7 +143,8 @@ let MOCK_PROJECTS: Project[] = [
     dueDate: '2024-04-20',
     manager: { id: 'pm3', name: 'Robert L.', role: 'Principal' },
     team: [],
-    tags: ['Commercial', 'Grading']
+    tags: ['Commercial', 'Grading'],
+    description: 'Proposal for a new 120-unit senior living facility. Scope includes entitlement processing, preliminary grading, and conceptual utility master plan.'
   },
   {
     id: '24-115',
@@ -155,7 +159,8 @@ let MOCK_PROJECTS: Project[] = [
     team: [
         { id: 'sur1', name: 'R. Toony', role: 'Lead Surveyor' }
     ],
-    tags: ['Public Works', 'Parks']
+    tags: ['Public Works', 'Parks'],
+    description: 'Renovation of the existing riverside boat launch and parking lot. Includes new permeable paver parking stalls, bio-retention cells, and ADA path of travel upgrades.'
   }
 ];
 
@@ -286,7 +291,7 @@ let MOCK_TOOLS: ToolItem[] = [
   { id: 'layer-gen', title: 'Layer Name Generator', description: 'Build standard layer names from dropdowns (Discipline → Category → Type)', tier: ToolTier.TIER_1, iconName: 'Layers', status: 'LIVE', isWidget: true },
   { id: 'layer-val', title: 'Layer Name Validator', description: 'Paste layer names to catch errors before importing DXF.', tier: ToolTier.TIER_1, iconName: 'ShieldCheck', status: 'BETA' },
   { id: 'coord-conv', title: 'Coordinate Converter', description: 'Convert between NAD83, WGS84, and local grid systems.', tier: ToolTier.TIER_1, iconName: 'Map', status: 'LIVE' },
-  { id: 'surv-code', title: 'Survey Code Decoder', description: 'Interpret survey point descriptions without guessing.', tier: ToolTier.TIER_1, iconName: 'Hash', status: 'LIVE' },
+  { id: 'surv-code', title: 'Survey Code Decoder', description: 'Interpret survey point descriptions without guessing.', tier: ToolTier.TIER_1, iconName: 'Hash', status: 'LIVE', isWidget: true },
   { id: 'dxf-map', title: 'DXF Layer Mapper', description: 'Map messy client DXF layers to standard ACAD-GIS layers.', tier: ToolTier.TIER_2, iconName: 'FileCode', status: 'PLANNED' },
   { id: 'pipe-calc', title: 'Pipe Sizing Calculator', description: 'Calculate diameter for flow rate/slope (Gravity/Pressure).', tier: ToolTier.TIER_2, iconName: 'Calculator', status: 'PLANNED' },
   { id: 'net-diag', title: 'Network Diagram Gen', description: 'Convert utility networks into flow diagrams.', tier: ToolTier.TIER_2, iconName: 'Network', status: 'PLANNED' },
@@ -421,7 +426,8 @@ export class DataService {
           dueDate: project.dueDate || new Date().toLocaleDateString(),
           manager: project.manager || { id: 'pm1', name: 'Sarah J.', role: 'PM' },
           team: [],
-          tags: []
+          tags: project.tags || [],
+          description: project.description || 'No description provided.'
       };
       MOCK_PROJECTS.push(newProject);
       this.addLog('USER', `Initialized Project: ${newId} (${project.name})`, 'PROJECTS');

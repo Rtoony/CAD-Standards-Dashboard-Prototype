@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { ToolItem, ToolTier } from '../types';
 import { DataService } from '../services/dataService';
 import { ToolFormModal } from './ToolFormModal';
-import { Wrench, Hash, FileCode, Search, Map, Database, Calculator, Network, Eye, FileText, Copy, Check, AlertTriangle, Zap, Layers, ShieldCheck, Terminal, Info, Plus, Edit, Trash2 } from 'lucide-react';
+import { GoogleGenAI, Type } from "@google/genai";
+import { Wrench, Hash, FileCode, Search, Map, Database, Calculator, Network, Eye, FileText, Copy, Check, AlertTriangle, Zap, Layers, ShieldCheck, Terminal, Info, Plus, Edit, Trash2, Bot, Loader2, Sparkles, ScanLine, Activity } from 'lucide-react';
 
 const IconMap: Record<string, React.ElementType> = {
   'Layers': Layers,
@@ -65,6 +66,11 @@ export const ToolsModule: React.FC = () => {
       type: 'LIN'
   });
 
+  // --- SURVEY DECODER STATE ---
+  const [decoderInput, setDecoderInput] = useState('');
+  const [decodedResult, setDecodedResult] = useState<{description: string, category: string, confidence: number} | null>(null);
+  const [isDecoding, setIsDecoding] = useState(false);
+
   useEffect(() => {
       loadTools();
   }, []);
@@ -117,6 +123,56 @@ export const ToolsModule: React.FC = () => {
       setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDecode = async () => {
+      if (!decoderInput.trim()) return;
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) {
+          alert("API Key required for Field Cipher.");
+          return;
+      }
+      
+      setIsDecoding(true);
+      setDecodedResult(null);
+
+      try {
+          const ai = new GoogleGenAI({ apiKey });
+          const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: `Decode this Land Surveying Field Code: "${decoderInput}".
+              
+              Translate standard abbreviations (e.g., "TC" = Top of Curb, "IP" = Iron Pipe, "FND" = Found).
+              Return JSON with:
+              - description: The full human-readable meaning.
+              - category: Broad classification (e.g., Monumentation, Topography, Utilities, Vegetation).
+              - confidence: A number 1-100 indicating how standard this code is.
+              `,
+              config: {
+                  responseMimeType: 'application/json',
+                  responseSchema: {
+                      type: Type.OBJECT,
+                      properties: {
+                          description: { type: Type.STRING },
+                          category: { type: Type.STRING },
+                          confidence: { type: Type.NUMBER }
+                      },
+                      required: ['description', 'category', 'confidence']
+                  }
+              }
+          });
+          
+          const text = response.text;
+          if (text) {
+              const data = JSON.parse(text);
+              setDecodedResult(data);
+          }
+      } catch (e) {
+          console.error("Decode failed", e);
+          setDecodedResult({ description: "Decryption Failed: Unknown Code Protocol", category: "ERROR", confidence: 0 });
+      } finally {
+          setIsDecoding(false);
+      }
+  };
+
   // Dropdown Options
   const OPTIONS = {
       discipline: ['CIV', 'SUR', 'LND', 'GEN', 'GIS'],
@@ -130,6 +186,10 @@ export const ToolsModule: React.FC = () => {
   const essentials = tools.filter(t => t.tier === ToolTier.TIER_1 && !t.isWidget);
   const powerTools = tools.filter(t => t.tier === ToolTier.TIER_2);
   const advanced = tools.filter(t => t.tier === ToolTier.TIER_3);
+
+  // Widget visibility checks
+  const showLayerGen = tools.some(t => t.id === 'layer-gen' && t.status !== 'PLANNED');
+  const showSurvDecoder = tools.some(t => t.id === 'surv-code' && t.status !== 'PLANNED');
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--bg-main)] overflow-y-auto custom-scrollbar relative">
@@ -165,99 +225,155 @@ export const ToolsModule: React.FC = () => {
               </div>
           </div>
 
-          {/* --- FEATURED WIDGET: LAYER NAME GENERATOR --- */}
-          <div className="mb-12">
-             <div className="bg-[#18181b] border border-[var(--border-main)] rounded-sm shadow-2xl overflow-visible relative z-20">
-                 {/* Widget Header */}
-                 <div className="bg-[#121212] border-b border-white/5 p-4 flex justify-between items-center relative overflow-hidden rounded-t-sm">
-                     <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-                     <div>
-                         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                             <Layers className="text-amber-500" size={20} /> Layer Name Generator
-                         </h2>
-                         <p className="text-xs text-neutral-500 mt-1">Generate compliant UCCS layer names instantly.</p>
-                     </div>
-                     <div className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20 rounded">
-                         Ready
-                     </div>
-                 </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-12">
+            
+            {/* --- WIDGET 1: LAYER NAME GENERATOR --- */}
+            {showLayerGen && (
+                <div className="bg-[#18181b] border border-[var(--border-main)] rounded-sm shadow-2xl overflow-visible relative z-20 flex flex-col">
+                    {/* Widget Header */}
+                    <div className="bg-[#121212] border-b border-white/5 p-4 flex justify-between items-center relative overflow-hidden rounded-t-sm">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                <Layers className="text-amber-500" size={20} /> Layer Name Generator
+                            </h2>
+                            <p className="text-xs text-neutral-500 mt-1">Generate compliant UCCS layer names instantly.</p>
+                        </div>
+                        <div className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20 rounded">
+                            Ready
+                        </div>
+                    </div>
 
-                 {/* Widget Body */}
-                 <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                     {/* Controls */}
-                     <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {Object.entries(OPTIONS).map(([key, options]) => (
-                            <div key={key} className="group relative">
-                                <label className="block text-[10px] font-mono text-neutral-500 uppercase tracking-wider mb-1.5 ml-1 group-hover:text-amber-500 transition-colors cursor-help w-max">
-                                    {key}
-                                </label>
-                                <div className="relative z-10">
-                                    <select 
-                                        value={(layerState as any)[key]}
-                                        onChange={(e) => setLayerState({...layerState, [key]: e.target.value})}
-                                        className="w-full appearance-none bg-black/40 border border-white/10 rounded p-3 text-sm font-mono text-white focus:outline-none focus:border-amber-500/50 focus:bg-black/60 transition-all cursor-pointer hover:border-white/20"
-                                    >
-                                        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                    </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-                                        <Terminal size={12} className="text-neutral-400" />
+                    {/* Widget Body */}
+                    <div className="p-6 flex-1 flex flex-col gap-6">
+                        {/* Controls */}
+                        <div className="grid grid-cols-2 gap-3">
+                            {Object.entries(OPTIONS).map(([key, options]) => (
+                                <div key={key} className="group relative">
+                                    <label className="block text-[10px] font-mono text-neutral-500 uppercase tracking-wider mb-1 group-hover:text-amber-500 transition-colors w-max">
+                                        {key}
+                                    </label>
+                                    <div className="relative z-10">
+                                        <select 
+                                            value={(layerState as any)[key]}
+                                            onChange={(e) => setLayerState({...layerState, [key]: e.target.value})}
+                                            className="w-full appearance-none bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-amber-500/50 focus:bg-black/60 transition-all cursor-pointer hover:border-white/20"
+                                        >
+                                            {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                        </select>
                                     </div>
                                 </div>
+                            ))}
+                        </div>
 
-                                {/* Tooltip / Guide */}
-                                <div className="absolute z-50 bottom-full left-0 mb-2 w-64 bg-neutral-900 p-3 rounded border border-white/10 shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none translate-y-2 group-hover:translate-y-0">
-                                    <div className="flex items-center gap-2 mb-2 border-b border-white/5 pb-2">
-                                        <Info size={12} className="text-amber-500"/>
-                                        <span className="text-[10px] font-bold uppercase text-white">Tier Guide: {key}</span>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div>
-                                            <span className="text-[9px] text-neutral-500 uppercase font-bold block mb-0.5">Layman</span>
-                                            <span className="text-[10px] text-neutral-300 leading-tight block">
-                                                {TIER_INFO[key]?.layman}
-                                            </span>
-                                        </div>
-                                        <div>
-                                             <span className="text-[9px] text-neutral-500 uppercase font-bold block mb-0.5">Engineer</span>
-                                             <span className="text-[10px] text-indigo-400 leading-tight block font-mono">
-                                                {TIER_INFO[key]?.engineer}
-                                             </span>
-                                        </div>
-                                    </div>
-                                    {/* Little arrow */}
-                                    <div className="absolute bottom-[-4px] left-4 w-2 h-2 bg-neutral-900 border-r border-b border-white/10 transform rotate-45"></div>
+                        {/* Output / Preview */}
+                        <div className="mt-auto">
+                            <div className="bg-[#09090b] border border-dashed border-white/20 rounded-lg p-6 flex flex-col items-center text-center relative group">
+                                <div className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2">Generated Layer Key</div>
+                                
+                                <div className="text-xl font-mono font-bold text-white tracking-tight break-all mb-4">
+                                    {generatedLayerName}
                                 </div>
-                            </div>
-                        ))}
-                     </div>
-
-                     {/* Output / Preview */}
-                     <div className="lg:col-span-4 flex flex-col justify-center">
-                         <div className="bg-[#09090b] border border-dashed border-white/20 rounded-lg p-6 flex flex-col items-center text-center relative group">
-                             <div className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-2">Generated Layer Key</div>
-                             
-                             <div className="text-2xl md:text-3xl font-mono font-bold text-white tracking-tight break-all">
-                                 {generatedLayerName}
-                             </div>
-                             
-                             <div className="mt-6 w-full">
-                                 <button 
+                                
+                                <button 
                                     onClick={handleCopy}
                                     className={`
-                                        w-full py-3 px-4 rounded font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all
+                                        w-full py-2 px-4 rounded font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all
                                         ${copied 
                                             ? 'bg-emerald-500 text-black hover:bg-emerald-400' 
                                             : 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)]'}
                                     `}
-                                 >
-                                     {copied ? <Check size={16}/> : <Copy size={16}/>}
-                                     {copied ? 'Copied to Clipboard' : 'Copy Layer Name'}
-                                 </button>
-                             </div>
+                                >
+                                    {copied ? <Check size={14}/> : <Copy size={14}/>}
+                                    {copied ? 'Copied' : 'Copy Name'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- WIDGET 2: FIELD CODE CIPHER --- */}
+            {showSurvDecoder && (
+                <div className="bg-[#18181b] border border-indigo-500/30 rounded-sm shadow-2xl overflow-visible relative z-20 flex flex-col">
+                    {/* Widget Header */}
+                    <div className="bg-[#121212] border-b border-white/5 p-4 flex justify-between items-center relative overflow-hidden rounded-t-sm">
+                         <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                         <div>
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                <Hash className="text-indigo-500" size={20} /> Field Code Cipher
+                            </h2>
+                            <p className="text-xs text-neutral-500 mt-1">Decrypt legacy survey codes with AI analysis.</p>
                          </div>
-                     </div>
-                 </div>
-             </div>
+                         <div className="px-2 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-widest border border-indigo-500/20 rounded flex items-center gap-1">
+                             <Sparkles size={10}/> AI-Powered
+                         </div>
+                    </div>
+
+                    <div className="p-6 flex-1 flex flex-col gap-6">
+                        <div className="relative">
+                            <label className="block text-[10px] font-mono text-indigo-400 uppercase tracking-wider mb-2">Raw Data Input</label>
+                            <div className="relative">
+                                <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" size={16} />
+                                <input 
+                                    type="text" 
+                                    value={decoderInput}
+                                    onChange={(e) => setDecoderInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleDecode()}
+                                    placeholder="Enter code (e.g. FND 3/4 IP RE TAG)"
+                                    className="w-full pl-10 pr-12 py-3 bg-black/40 border border-white/10 rounded text-sm font-mono text-white focus:outline-none focus:border-indigo-500/50 placeholder:text-neutral-700 transition-all uppercase"
+                                />
+                                <button 
+                                    onClick={handleDecode}
+                                    disabled={isDecoding || !decoderInput}
+                                    className="absolute right-1 top-1 bottom-1 px-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-neutral-800 disabled:text-neutral-600 text-white rounded font-bold text-xs uppercase transition-colors flex items-center"
+                                >
+                                    {isDecoding ? <Loader2 size={14} className="animate-spin"/> : "DEC"}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 bg-[#09090b] border border-white/10 rounded p-4 relative overflow-hidden min-h-[140px] flex items-center justify-center">
+                            {/* Scanning Grid Background */}
+                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
+                            
+                            {!decodedResult && !isDecoding && (
+                                <div className="text-center text-neutral-600">
+                                    <Bot size={32} className="mx-auto mb-2 opacity-50"/>
+                                    <p className="text-xs font-mono uppercase tracking-widest">Awaiting Transmission...</p>
+                                </div>
+                            )}
+
+                            {isDecoding && (
+                                <div className="text-center text-indigo-500">
+                                    <Loader2 size={32} className="mx-auto mb-2 animate-spin"/>
+                                    <p className="text-xs font-mono uppercase tracking-widest animate-pulse">Running Heuristics...</p>
+                                </div>
+                            )}
+
+                            {decodedResult && !isDecoding && (
+                                <div className="w-full text-left animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="flex justify-between items-start mb-3 border-b border-white/5 pb-2">
+                                        <div className="text-xs text-indigo-400 font-bold uppercase tracking-wider">Decoded Payload</div>
+                                        <div className="flex items-center gap-1 text-[10px] font-mono text-emerald-500">
+                                            <Activity size={10}/> {decodedResult.confidence}% Confidence
+                                        </div>
+                                    </div>
+                                    <div className="text-lg font-bold text-white mb-2 leading-tight">
+                                        {decodedResult.description}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] text-neutral-500 uppercase">Category:</span>
+                                        <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-neutral-300 uppercase tracking-wide">
+                                            {decodedResult.category}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
           </div>
 
 
