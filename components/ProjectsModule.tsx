@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Project, ProjectStatus } from '../types';
 import { DataService } from '../services/dataService';
-import { Briefcase, Search, Filter, LayoutGrid, List, MapPin, Calendar, User, MoreVertical, FolderOpen, AlertCircle, CheckCircle2, Clock, Plus } from 'lucide-react';
+import { ProjectFormModal } from './ProjectFormModal';
+import { Briefcase, Search, Filter, LayoutGrid, List, MapPin, Calendar, User, MoreVertical, FolderOpen, AlertCircle, CheckCircle2, Clock, Plus, Edit, Trash2 } from 'lucide-react';
 
 export const ProjectsModule: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -11,18 +12,55 @@ export const ProjectsModule: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // CRUD State
+  const [showModal, setShowModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+
   useEffect(() => {
-    const load = async () => {
-        setIsLoading(true);
-        try {
-            const data = await DataService.fetchProjects();
-            setProjects(data);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    load();
+    loadProjects();
   }, []);
+
+  const loadProjects = async () => {
+    setIsLoading(true);
+    try {
+        const data = await DataService.fetchProjects();
+        setProjects(data);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleCreateStart = () => {
+      setEditingProject(null);
+      setShowModal(true);
+  };
+
+  const handleEditStart = (project: Project, e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setEditingProject(project);
+      setShowModal(true);
+  };
+
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (window.confirm("Are you sure you want to delete this project record? This cannot be undone.")) {
+          await DataService.deleteProject(id);
+          setProjects(prev => prev.filter(p => p.id !== id));
+      }
+  };
+
+  const handleSave = async (data: Partial<Project>) => {
+      setShowModal(false);
+      if (editingProject) {
+          // Update
+          const updated = await DataService.updateProject({ ...editingProject, ...data } as Project);
+          setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
+      } else {
+          // Create
+          const created = await DataService.addProject(data);
+          setProjects(prev => [...prev, created]);
+      }
+  };
 
   const filteredProjects = projects.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -69,7 +107,10 @@ export const ProjectsModule: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm font-bold uppercase text-xs tracking-wider shadow-lg transition-colors">
+                  <button 
+                    onClick={handleCreateStart}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm font-bold uppercase text-xs tracking-wider shadow-lg transition-colors"
+                  >
                       <Plus size={16} /> New Job
                   </button>
               </div>
@@ -132,11 +173,11 @@ export const ProjectsModule: React.FC = () => {
                       {viewMode === 'grid' ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                               {filteredProjects.map(project => (
-                                  <div key={project.id} className="bg-[#18181b] border border-[var(--border-main)] rounded-sm group hover:border-indigo-500/50 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer relative overflow-hidden">
+                                  <div key={project.id} className="bg-[#18181b] border border-[var(--border-main)] rounded-sm group hover:border-indigo-500/50 transition-all hover:-translate-y-1 hover:shadow-xl cursor-pointer relative overflow-hidden flex flex-col">
                                       {/* Top Status Bar */}
                                       <div className={`h-1 w-full ${getProgressColor(project.status)}`}></div>
                                       
-                                      <div className="p-5">
+                                      <div className="p-5 flex-1">
                                           <div className="flex justify-between items-start mb-4">
                                               <div>
                                                   <div className="font-mono text-xs text-indigo-400 font-bold mb-1">JOB #{project.id}</div>
@@ -172,21 +213,32 @@ export const ProjectsModule: React.FC = () => {
                                                   <div className={`h-full ${getProgressColor(project.status)} transition-all duration-500`} style={{ width: `${project.progress}%` }}></div>
                                               </div>
                                           </div>
+                                      </div>
                                           
-                                          {/* Footer */}
-                                          <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-                                              <div className="flex -space-x-2">
-                                                  <div className="w-6 h-6 rounded-full bg-neutral-700 border border-[#18181b] flex items-center justify-center text-[10px] font-bold text-white" title={project.manager.name}>
-                                                      {project.manager.name.charAt(0)}
-                                                  </div>
-                                                  {project.team.map((member, i) => (
-                                                      <div key={i} className="w-6 h-6 rounded-full bg-neutral-800 border border-[#18181b] flex items-center justify-center text-[10px] text-neutral-400">
-                                                          {member.name.charAt(0)}
-                                                      </div>
-                                                  ))}
+                                      {/* Footer */}
+                                      <div className="p-4 pt-3 border-t border-white/5 flex justify-between items-center mt-auto bg-black/10">
+                                          <div className="flex -space-x-2">
+                                              <div className="w-6 h-6 rounded-full bg-neutral-700 border border-[#18181b] flex items-center justify-center text-[10px] font-bold text-white" title={project.manager.name}>
+                                                  {project.manager.name.charAt(0)}
                                               </div>
-                                              <button className="text-indigo-400 hover:text-white transition-colors">
-                                                  <FolderOpen size={16} />
+                                              {project.team.map((member, i) => (
+                                                  <div key={i} className="w-6 h-6 rounded-full bg-neutral-800 border border-[#18181b] flex items-center justify-center text-[10px] text-neutral-400">
+                                                      {member.name.charAt(0)}
+                                                  </div>
+                                              ))}
+                                          </div>
+                                          <div className="flex gap-2">
+                                              <button 
+                                                onClick={(e) => handleEditStart(project, e)}
+                                                className="p-1.5 text-neutral-500 hover:text-indigo-400 hover:bg-white/5 rounded transition-colors"
+                                              >
+                                                  <Edit size={14} />
+                                              </button>
+                                              <button 
+                                                onClick={(e) => handleDelete(project.id, e)}
+                                                className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-white/5 rounded transition-colors"
+                                              >
+                                                  <Trash2 size={14} />
                                               </button>
                                           </div>
                                       </div>
@@ -205,11 +257,12 @@ export const ProjectsModule: React.FC = () => {
                                           <th className="p-4 font-medium">Phase</th>
                                           <th className="p-4 font-medium">Status</th>
                                           <th className="p-4 font-medium text-right">Progress</th>
+                                          <th className="p-4 font-medium text-right">Actions</th>
                                       </tr>
                                   </thead>
                                   <tbody className="text-sm text-neutral-300 divide-y divide-white/5">
                                       {filteredProjects.map(project => (
-                                          <tr key={project.id} className="hover:bg-white/5 transition-colors group cursor-pointer">
+                                          <tr key={project.id} className="hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => handleEditStart(project)}>
                                               <td className="p-4 font-mono text-indigo-400 font-bold">{project.id}</td>
                                               <td className="p-4 font-bold">{project.name}</td>
                                               <td className="p-4 text-neutral-400">{project.client}</td>
@@ -221,6 +274,22 @@ export const ProjectsModule: React.FC = () => {
                                                   </span>
                                               </td>
                                               <td className="p-4 text-right font-mono">{project.progress}%</td>
+                                              <td className="p-4 text-right">
+                                                  <div className="flex items-center justify-end gap-2">
+                                                      <button 
+                                                        onClick={(e) => handleEditStart(project, e)}
+                                                        className="text-neutral-500 hover:text-indigo-400 transition-colors"
+                                                      >
+                                                          <Edit size={14} />
+                                                      </button>
+                                                      <button 
+                                                        onClick={(e) => handleDelete(project.id, e)}
+                                                        className="text-neutral-500 hover:text-red-400 transition-colors"
+                                                      >
+                                                          <Trash2 size={14} />
+                                                      </button>
+                                                  </div>
+                                              </td>
                                           </tr>
                                       ))}
                                   </tbody>
@@ -231,6 +300,16 @@ export const ProjectsModule: React.FC = () => {
               )}
           </div>
        </div>
+
+       {/* Modal */}
+       {showModal && (
+           <ProjectFormModal 
+                mode={editingProject ? 'EDIT' : 'CREATE'}
+                initialData={editingProject || undefined}
+                onClose={() => setShowModal(false)}
+                onSave={handleSave}
+           />
+       )}
     </div>
   );
 };

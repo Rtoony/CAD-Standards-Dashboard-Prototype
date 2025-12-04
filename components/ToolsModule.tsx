@@ -1,19 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ToolItem, ToolTier } from '../types';
-import { Wrench, Hash, FileCode, Search, Map, Database, Calculator, Network, Eye, FileText, Copy, Check, AlertTriangle, Zap, Layers, ShieldCheck, Terminal, Info } from 'lucide-react';
-
-// --- MOCK DATA FOR TOOLS ---
-const TOOLS_DB: ToolItem[] = [
-  { id: 'layer-gen', title: 'Layer Name Generator', description: 'Build standard layer names from dropdowns (Discipline → Category → Type)', tier: ToolTier.TIER_1, iconName: 'Layers', status: 'LIVE', isWidget: true },
-  { id: 'layer-val', title: 'Layer Name Validator', description: 'Paste layer names to catch errors before importing DXF.', tier: ToolTier.TIER_1, iconName: 'ShieldCheck', status: 'BETA' },
-  { id: 'coord-conv', title: 'Coordinate Converter', description: 'Convert between NAD83, WGS84, and local grid systems.', tier: ToolTier.TIER_1, iconName: 'Map', status: 'LIVE' },
-  { id: 'surv-code', title: 'Survey Code Decoder', description: 'Interpret survey point descriptions without guessing.', tier: ToolTier.TIER_1, iconName: 'Hash', status: 'LIVE' },
-  { id: 'dxf-map', title: 'DXF Layer Mapper', description: 'Map messy client DXF layers to standard ACAD-GIS layers.', tier: ToolTier.TIER_2, iconName: 'FileCode', status: 'PLANNED' },
-  { id: 'pipe-calc', title: 'Pipe Sizing Calculator', description: 'Calculate diameter for flow rate/slope (Gravity/Pressure).', tier: ToolTier.TIER_2, iconName: 'Calculator', status: 'PLANNED' },
-  { id: 'net-diag', title: 'Network Diagram Gen', description: 'Convert utility networks into flow diagrams.', tier: ToolTier.TIER_2, iconName: 'Network', status: 'PLANNED' },
-  { id: 'ai-search', title: 'CAD Doc Search', description: 'Natural language search across all project data.', tier: ToolTier.TIER_3, iconName: 'Zap', status: 'PLANNED' },
-];
+import { DataService } from '../services/dataService';
+import { ToolFormModal } from './ToolFormModal';
+import { Wrench, Hash, FileCode, Search, Map, Database, Calculator, Network, Eye, FileText, Copy, Check, AlertTriangle, Zap, Layers, ShieldCheck, Terminal, Info, Plus, Edit, Trash2 } from 'lucide-react';
 
 const IconMap: Record<string, React.ElementType> = {
   'Layers': Layers,
@@ -24,7 +14,8 @@ const IconMap: Record<string, React.ElementType> = {
   'Calculator': Calculator,
   'Network': Network,
   'Zap': Zap,
-  'Terminal': Terminal
+  'Terminal': Terminal,
+  'Wrench': Wrench
 };
 
 // --- TIER EXPLANATIONS ---
@@ -57,6 +48,12 @@ const TIER_INFO: Record<string, { layman: string, engineer: string }> = {
 
 export const ToolsModule: React.FC = () => {
   const [copied, setCopied] = useState(false);
+  const [tools, setTools] = useState<ToolItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // CRUD State
+  const [showModal, setShowModal] = useState(false);
+  const [editingTool, setEditingTool] = useState<ToolItem | null>(null);
 
   // --- LAYER GENERATOR STATE ---
   const [layerState, setLayerState] = useState({
@@ -67,6 +64,50 @@ export const ToolsModule: React.FC = () => {
       status: 'PROP',
       type: 'LIN'
   });
+
+  useEffect(() => {
+      loadTools();
+  }, []);
+
+  const loadTools = async () => {
+      setIsLoading(true);
+      try {
+          const data = await DataService.fetchTools();
+          setTools(data);
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  const handleCreateStart = () => {
+      setEditingTool(null);
+      setShowModal(true);
+  };
+
+  const handleEditStart = (tool: ToolItem, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setEditingTool(tool);
+      setShowModal(true);
+  };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if(window.confirm("Uninstall this tool?")) {
+          await DataService.deleteTool(id);
+          setTools(prev => prev.filter(t => t.id !== id));
+      }
+  };
+
+  const handleSave = async (data: Partial<ToolItem>) => {
+      setShowModal(false);
+      if (editingTool) {
+          const updated = await DataService.updateTool({ ...editingTool, ...data } as ToolItem);
+          setTools(prev => prev.map(t => t.id === updated.id ? updated : t));
+      } else {
+          const created = await DataService.addTool(data);
+          setTools(prev => [...prev, created]);
+      }
+  };
 
   const generatedLayerName = `${layerState.discipline}-${layerState.category}-${layerState.element}-${layerState.modifier}-${layerState.status}-${layerState.type}`;
 
@@ -86,9 +127,9 @@ export const ToolsModule: React.FC = () => {
       type: ['LIN', 'BLK', 'PNT', 'PAT', 'TXT', 'SHT', 'DTL']
   };
 
-  const essentials = TOOLS_DB.filter(t => t.tier === ToolTier.TIER_1 && !t.isWidget);
-  const powerTools = TOOLS_DB.filter(t => t.tier === ToolTier.TIER_2);
-  const advanced = TOOLS_DB.filter(t => t.tier === ToolTier.TIER_3);
+  const essentials = tools.filter(t => t.tier === ToolTier.TIER_1 && !t.isWidget);
+  const powerTools = tools.filter(t => t.tier === ToolTier.TIER_2);
+  const advanced = tools.filter(t => t.tier === ToolTier.TIER_3);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--bg-main)] overflow-y-auto custom-scrollbar relative">
@@ -106,13 +147,21 @@ export const ToolsModule: React.FC = () => {
                   </div>
                   <h1 className="text-3xl font-bold text-[var(--text-main)] tracking-tight">Micro-Apps & Tools</h1>
               </div>
-              <div className="flex gap-2">
-                 <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded text-amber-500 text-xs font-bold uppercase tracking-wider">
-                    {TOOLS_DB.filter(t => t.status === 'LIVE').length} Active
+              <div className="flex items-center gap-4">
+                 <div className="flex gap-2">
+                    <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded text-amber-500 text-xs font-bold uppercase tracking-wider">
+                        {tools.filter(t => t.status === 'LIVE').length} Active
+                    </div>
+                    <div className="px-3 py-1 bg-neutral-800 border border-neutral-700 rounded text-neutral-400 text-xs font-bold uppercase tracking-wider">
+                        {tools.filter(t => t.status === 'PLANNED').length} Planned
+                    </div>
                  </div>
-                 <div className="px-3 py-1 bg-neutral-800 border border-neutral-700 rounded text-neutral-400 text-xs font-bold uppercase tracking-wider">
-                    {TOOLS_DB.filter(t => t.status === 'PLANNED').length} Planned
-                 </div>
+                 <button 
+                    onClick={handleCreateStart}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-black rounded shadow-lg font-bold text-xs uppercase tracking-wider transition-colors"
+                 >
+                     <Plus size={16} /> New Tool
+                 </button>
               </div>
           </div>
 
@@ -224,19 +273,40 @@ export const ToolsModule: React.FC = () => {
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                      {essentials.map(tool => {
                          const Icon = IconMap[tool.iconName] || Wrench;
+                         const isPlanned = tool.status === 'PLANNED';
+                         
                          return (
-                             <div key={tool.id} className="bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm hover:border-emerald-500/50 hover:bg-[#202023] transition-all group cursor-pointer relative overflow-hidden">
+                             <div 
+                                key={tool.id} 
+                                className={`
+                                    bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm transition-all group cursor-pointer relative overflow-hidden flex flex-col
+                                    ${isPlanned ? 'opacity-60 border-dashed border-white/5 bg-transparent' : 'hover:border-emerald-500/50 hover:bg-[#202023] hover:-translate-y-1 hover:shadow-lg'}
+                                `}
+                             >
                                  <div className="flex justify-between items-start mb-4">
-                                     <div className="p-3 bg-[#09090b] rounded border border-white/10 text-emerald-500 group-hover:text-white group-hover:bg-emerald-500 transition-colors">
+                                     <div className={`p-3 rounded border transition-colors ${isPlanned ? 'bg-white/5 border-white/5 text-neutral-500' : 'bg-[#09090b] border-white/10 text-emerald-500 group-hover:text-white group-hover:bg-emerald-500'}`}>
                                          <Icon size={20} />
                                      </div>
-                                     {tool.status === 'BETA' && <span className="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded border border-yellow-500/20">BETA</span>}
+                                     <div className="flex items-center gap-2">
+                                        {tool.status === 'BETA' && <span className="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded border border-yellow-500/20">BETA</span>}
+                                        {isPlanned && <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/5">PLANNED</span>}
+                                        
+                                        {/* Actions */}
+                                        {!tool.isWidget && (
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={(e) => handleEditStart(tool, e)} className="p-1 text-neutral-500 hover:text-indigo-400 hover:bg-white/10 rounded"><Edit size={12}/></button>
+                                                <button onClick={(e) => handleDelete(tool.id, e)} className="p-1 text-neutral-500 hover:text-red-400 hover:bg-white/10 rounded"><Trash2 size={12}/></button>
+                                            </div>
+                                        )}
+                                     </div>
                                  </div>
                                  <h4 className="text-sm font-bold text-white mb-2">{tool.title}</h4>
-                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 h-10 overflow-hidden">{tool.description}</p>
-                                 <div className="flex items-center text-[10px] font-bold text-neutral-600 group-hover:text-emerald-400 transition-colors uppercase tracking-wider">
-                                     Launch Tool <Terminal size={10} className="ml-1" />
-                                 </div>
+                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 flex-1">{tool.description}</p>
+                                 {!isPlanned && (
+                                    <div className="flex items-center text-[10px] font-bold text-neutral-600 group-hover:text-emerald-400 transition-colors uppercase tracking-wider mt-auto">
+                                        Launch Tool <Terminal size={10} className="ml-1" />
+                                    </div>
+                                 )}
                              </div>
                          );
                      })}
@@ -252,16 +322,29 @@ export const ToolsModule: React.FC = () => {
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                      {powerTools.map(tool => {
                          const Icon = IconMap[tool.iconName] || Wrench;
+                         const isPlanned = tool.status === 'PLANNED';
                          return (
-                             <div key={tool.id} className="bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm hover:border-blue-500/50 hover:bg-[#202023] transition-all group cursor-pointer opacity-80 hover:opacity-100">
+                             <div 
+                                key={tool.id} 
+                                className={`
+                                    bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm transition-all group cursor-pointer relative overflow-hidden flex flex-col
+                                    ${isPlanned ? 'opacity-60 border-dashed border-white/5 bg-transparent' : 'hover:border-blue-500/50 hover:bg-[#202023] hover:-translate-y-1 hover:shadow-lg'}
+                                `}
+                             >
                                  <div className="flex justify-between items-start mb-4">
-                                     <div className="p-3 bg-[#09090b] rounded border border-white/10 text-blue-500 group-hover:text-white group-hover:bg-blue-500 transition-colors">
+                                     <div className={`p-3 rounded border transition-colors ${isPlanned ? 'bg-white/5 border-white/5 text-neutral-500' : 'bg-[#09090b] border-white/10 text-blue-500 group-hover:text-white group-hover:bg-blue-500'}`}>
                                          <Icon size={20} />
                                      </div>
-                                     <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/5">PLANNED</span>
+                                     <div className="flex items-center gap-2">
+                                        {isPlanned && <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/5">PLANNED</span>}
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={(e) => handleEditStart(tool, e)} className="p-1 text-neutral-500 hover:text-indigo-400 hover:bg-white/10 rounded"><Edit size={12}/></button>
+                                                <button onClick={(e) => handleDelete(tool.id, e)} className="p-1 text-neutral-500 hover:text-red-400 hover:bg-white/10 rounded"><Trash2 size={12}/></button>
+                                        </div>
+                                     </div>
                                  </div>
                                  <h4 className="text-sm font-bold text-white mb-2">{tool.title}</h4>
-                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 h-10 overflow-hidden">{tool.description}</p>
+                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 flex-1">{tool.description}</p>
                              </div>
                          );
                      })}
@@ -277,19 +360,32 @@ export const ToolsModule: React.FC = () => {
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                      {advanced.map(tool => {
                          const Icon = IconMap[tool.iconName] || Wrench;
+                         const isPlanned = tool.status === 'PLANNED';
                          return (
-                             <div key={tool.id} className="bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm hover:border-purple-500/50 hover:bg-[#202023] transition-all group cursor-pointer opacity-80 hover:opacity-100 relative overflow-hidden">
-                                 {/* Shine effect */}
-                                 <div className="absolute -right-10 -top-10 w-20 h-20 bg-purple-500/10 blur-2xl rounded-full group-hover:bg-purple-500/20 transition-all"></div>
+                             <div 
+                                key={tool.id} 
+                                className={`
+                                    bg-[#18181b] border border-[var(--border-main)] p-5 rounded-sm transition-all group cursor-pointer relative overflow-hidden flex flex-col
+                                    ${isPlanned ? 'opacity-60 border-dashed border-white/5 bg-transparent' : 'hover:border-purple-500/50 hover:bg-[#202023] hover:-translate-y-1 hover:shadow-lg'}
+                                `}
+                             >
+                                 {/* Shine effect for Tier 3 */}
+                                 {!isPlanned && <div className="absolute -right-10 -top-10 w-20 h-20 bg-purple-500/10 blur-2xl rounded-full group-hover:bg-purple-500/20 transition-all"></div>}
                                  
                                  <div className="flex justify-between items-start mb-4 relative z-10">
-                                     <div className="p-3 bg-[#09090b] rounded border border-white/10 text-purple-500 group-hover:text-white group-hover:bg-purple-500 transition-colors">
+                                     <div className={`p-3 rounded border transition-colors ${isPlanned ? 'bg-white/5 border-white/5 text-neutral-500' : 'bg-[#09090b] border-white/10 text-purple-500 group-hover:text-white group-hover:bg-purple-500'}`}>
                                          <Icon size={20} />
                                      </div>
-                                     <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/5">PLANNED</span>
+                                     <div className="flex items-center gap-2">
+                                        {isPlanned && <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/5">PLANNED</span>}
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={(e) => handleEditStart(tool, e)} className="p-1 text-neutral-500 hover:text-indigo-400 hover:bg-white/10 rounded"><Edit size={12}/></button>
+                                                <button onClick={(e) => handleDelete(tool.id, e)} className="p-1 text-neutral-500 hover:text-red-400 hover:bg-white/10 rounded"><Trash2 size={12}/></button>
+                                        </div>
+                                     </div>
                                  </div>
                                  <h4 className="text-sm font-bold text-white mb-2 relative z-10">{tool.title}</h4>
-                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 h-10 overflow-hidden relative z-10">{tool.description}</p>
+                                 <p className="text-xs text-neutral-500 leading-relaxed mb-4 flex-1 relative z-10">{tool.description}</p>
                              </div>
                          );
                      })}
@@ -299,6 +395,16 @@ export const ToolsModule: React.FC = () => {
           </div>
 
        </div>
+
+       {/* Modal */}
+       {showModal && (
+           <ToolFormModal 
+                mode={editingTool ? 'EDIT' : 'CREATE'}
+                initialData={editingTool || undefined}
+                onClose={() => setShowModal(false)}
+                onSave={handleSave}
+           />
+       )}
     </div>
   );
 };

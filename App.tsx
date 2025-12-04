@@ -8,10 +8,13 @@ import { HomeModule } from './components/HomeModule';
 import { ToolsModule } from './components/ToolsModule';
 import { ProjectsModule } from './components/ProjectsModule';
 import { PersonnelModule } from './components/PersonnelModule';
+import { AdminModule } from './components/AdminModule';
+import { StandardFormModal } from './components/StandardFormModal';
+import { ImportModal } from './components/ImportModal';
 import { THEMES, SIDEBAR_BUTTONS, SUB_CATEGORIES } from './constants';
 import { DataService } from './services/dataService';
 import { ElementType, SidebarFilter, UserProfile, UserPreferences, StandardCard } from './types';
-import { X, Search, ChevronDown, Filter, LayoutGrid, List, User as UserIcon, Loader2, Terminal, Star, ArrowUp, ArrowDown } from 'lucide-react';
+import { X, Search, ChevronDown, Filter, LayoutGrid, List, User as UserIcon, Loader2, Terminal, Star, ArrowUp, ArrowDown, Plus, Upload } from 'lucide-react';
 
 const App: React.FC = () => {
   // --- Theme Management ---
@@ -30,7 +33,7 @@ const App: React.FC = () => {
     status: 'Active, Grumbling',
     level: 10, // The Legend
     // Middle-aged, bearded white man, disgruntled
-    avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=SirRToony&skinColor=f2d3b1&hair=short12&hairColor=856f5d&beard=variant12&beardProbability=100&glasses=variant02&eyebrows=variant12&mouth=variant10&backgroundColor=b6e3f4',
+    avatarUrl: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Easton&skinColor=f2d3b1&hair=short12&hairColor=856f5d&beard=variant12&beardProbability=100&glasses=variant02&eyebrows=variant12&mouth=variant10&backgroundColor=b6e3f4',
     bio: "Sir R. Toony is the bedrock of our Geomatics department—a man carved from granite and fueled by questionable coffee. He has been mapping this landscape since before half the current staff were born.",
     quote: "If you need a field problem solved, bring me a fresh mug.",
     expertise: [
@@ -66,6 +69,11 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("INITIALIZING");
 
+  // CRUD State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [editingCard, setEditingCard] = useState<StandardCard | null>(null); // If null, it's a Create operation
+
   // Init Favorites from LocalStorage
   useEffect(() => {
     const storedFavs = localStorage.getItem('acme_user_favorites');
@@ -80,41 +88,42 @@ const App: React.FC = () => {
 
   // Load Data when Category Changes
   useEffect(() => {
-    const loadData = async () => {
-        setIsLoading(true);
-        setLoadingMessage("CONNECTING_TO_DB");
-        
-        // Reset Filters on Category Change
-        setActiveSubCategory('ALL');
-        setSidebarFilter('ALL');
-        
-        // Cycle through fake status messages for "vibe"
-        const msgs = ["HANDSHAKE_INIT", "QUERYING_INDEX", "FETCHING_VECTORS", "RENDERING_ASSETS"];
-        let msgIdx = 0;
-        const msgInterval = setInterval(() => {
-            setLoadingMessage(msgs[msgIdx % msgs.length]);
-            msgIdx++;
-        }, 150);
-
-        setAllCards([]); // Clear current view
-        try {
-            const cards = await DataService.fetchCards(activeCategory);
-            
-            // Merge with favorites status
-            const mergedCards = cards.map(card => ({
-                ...card,
-                isFavorite: favoriteIds.includes(card.id)
-            }));
-            setAllCards(mergedCards);
-        } catch (error) {
-            console.error("Failed to fetch library assets", error);
-        } finally {
-            clearInterval(msgInterval);
-            setIsLoading(false);
-        }
-    };
     loadData();
   }, [activeCategory]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    setLoadingMessage("CONNECTING_TO_DB");
+    
+    // Reset Filters on Category Change
+    setActiveSubCategory('ALL');
+    setSidebarFilter('ALL');
+    
+    // Cycle through fake status messages for "vibe"
+    const msgs = ["HANDSHAKE_INIT", "QUERYING_INDEX", "FETCHING_VECTORS", "RENDERING_ASSETS"];
+    let msgIdx = 0;
+    const msgInterval = setInterval(() => {
+        setLoadingMessage(msgs[msgIdx % msgs.length]);
+        msgIdx++;
+    }, 150);
+
+    setAllCards([]); // Clear current view
+    try {
+        const cards = await DataService.fetchCards(activeCategory);
+        
+        // Merge with favorites status
+        const mergedCards = cards.map(card => ({
+            ...card,
+            isFavorite: favoriteIds.includes(card.id)
+        }));
+        setAllCards(mergedCards);
+    } catch (error) {
+        console.error("Failed to fetch library assets", error);
+    } finally {
+        clearInterval(msgInterval);
+        setIsLoading(false);
+    }
+  };
 
   // Re-apply favorites if the list changes (without re-fetching data)
   useEffect(() => {
@@ -154,6 +163,76 @@ const App: React.FC = () => {
         const newHistory = [id, ...currentUser.recentHistory].slice(0, 5);
         setCurrentUser(prev => ({ ...prev, recentHistory: newHistory }));
     }
+  };
+
+  // --- CRUD Handlers ---
+
+  const handleCreateStart = () => {
+      setEditingCard(null);
+      setShowEditModal(true);
+  };
+
+  const handleEditStart = (card: StandardCard) => {
+      setEditingCard(card);
+      setShowEditModal(true);
+  };
+
+  const handleSave = async (data: Partial<StandardCard>) => {
+      setShowEditModal(false);
+      setIsLoading(true);
+      setLoadingMessage(editingCard ? "UPDATING_RECORD" : "ALLOCATING_NEW_BLOCK");
+
+      try {
+          if (editingCard) {
+              // Update
+              const updated = await DataService.updateCard({ ...editingCard, ...data } as StandardCard);
+              setAllCards(prev => prev.map(c => c.id === updated.id ? { ...updated, isFavorite: favoriteIds.includes(updated.id) } : c));
+              // Update zoomed card if it was open
+              if (zoomedCardId === updated.id) {
+                  // Reactivity handles this naturally via find() below
+              }
+          } else {
+              // Create
+              const created = await DataService.addCard({ ...data, category: activeCategory });
+              setAllCards(prev => [...prev, { ...created, isFavorite: false }]);
+          }
+      } catch (e) {
+          console.error("Save failed", e);
+          alert("System Error: Could not persist data.");
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  const handleImport = async (data: Partial<StandardCard>[]) => {
+      setShowImportModal(false);
+      setIsLoading(true);
+      setLoadingMessage("BATCH_INSERTION_PROTOCOL");
+      try {
+          await DataService.bulkAddCards(data);
+          // Refresh view
+          loadData();
+      } catch (e) {
+          console.error("Import failed", e);
+          alert("Import Failed.");
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  const handleDelete = async (id: string) => {
+      setIsLoading(true);
+      setLoadingMessage("PURGING_DATA");
+      try {
+          await DataService.deleteCard(id);
+          setAllCards(prev => prev.filter(c => c.id !== id));
+          if (zoomedCardId === id) setZoomedCardId(null);
+      } catch (e) {
+          console.error("Delete failed", e);
+          alert("System Error: Could not delete record.");
+      } finally {
+          setIsLoading(false);
+      }
   };
 
   // --- Exclusive Filter Logic ---
@@ -322,6 +401,8 @@ const App: React.FC = () => {
          <ProjectsModule />
       ) : activeModule === 'personnel' ? (
          <PersonnelModule />
+      ) : activeModule === 'admin' ? (
+         <AdminModule />
       ) : activeModule === 'library' ? (
         <>
             {/* Library Sidebar */}
@@ -352,6 +433,23 @@ const App: React.FC = () => {
                         
                         {/* Top Right Actions (View Toggles Only Now) */}
                         <div className="flex gap-4 items-center">
+                            
+                            {/* Import Button */}
+                            <button 
+                                onClick={() => setShowImportModal(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#18181b] border border-white/10 hover:border-white/20 text-white rounded shadow-sm transition-all font-bold uppercase text-xs tracking-wider"
+                            >
+                                <Upload size={16} /> Import
+                            </button>
+
+                            {/* Add New Button */}
+                            <button 
+                                onClick={handleCreateStart}
+                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded shadow-lg hover:shadow-indigo-500/20 transition-all font-bold uppercase text-xs tracking-wider"
+                            >
+                                <Plus size={16} /> Add New
+                            </button>
+
                             {/* View Toggles */}
                             <div className="flex gap-2 bg-[var(--bg-card)] p-1 rounded-lg border border-[var(--border-subtle)]">
                                 <button 
@@ -581,6 +679,8 @@ const App: React.FC = () => {
                                             variant="list"
                                             onZoom={() => handleZoomCard(card.id)}
                                             onToggleFavorite={toggleFavorite}
+                                            onEdit={handleEditStart}
+                                            onDelete={handleDelete}
                                         />
                                     ))
                                 ) : (
@@ -595,23 +695,23 @@ const App: React.FC = () => {
             </main>
         </>
       ) : (
-          // Fallback for other modules (Admin)
+          // Fallback for other modules (if any)
           <div className="flex-1 flex flex-col items-center justify-center bg-[#121212] text-neutral-500">
              <div className="p-8 border border-dashed border-neutral-800 rounded-2xl text-center max-w-md">
                 <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
                    <UserIcon size={32} />
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2 uppercase tracking-wider">
-                    {activeModule} Module
+                    Module 404
                 </h2>
                 <p className="text-neutral-400 mb-6">
-                    This section is currently offline.
+                    Section not found or access restricted.
                 </p>
                 <button 
                    onClick={() => setActiveModule('home')}
                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold uppercase tracking-wide transition-colors"
                 >
-                    Return to Dashboard
+                    Return to Base
                 </button>
              </div>
           </div>
@@ -637,9 +737,30 @@ const App: React.FC = () => {
                 variant="zoomed" 
                 onClose={() => setZoomedCardId(null)}
                 onToggleFavorite={toggleFavorite}
+                onEdit={handleEditStart}
+                onDelete={handleDelete}
              />
            </div>
         </div>
+      )}
+
+      {/* CRUD Modal Layer */}
+      {showEditModal && (
+          <StandardFormModal
+             mode={editingCard ? 'EDIT' : 'CREATE'}
+             initialData={editingCard || undefined}
+             category={activeCategory}
+             onClose={() => setShowEditModal(false)}
+             onSave={handleSave}
+          />
+      )}
+
+      {/* Import Modal Layer */}
+      {showImportModal && (
+          <ImportModal
+             onClose={() => setShowImportModal(false)}
+             onImport={handleImport}
+          />
       )}
     </div>
   );

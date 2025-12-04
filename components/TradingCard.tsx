@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { StandardCard, ThemeConfig, ElementType, SvgNode, CadVector } from '../types';
-import { MousePointer2, Star, FileText, Box, Layers, Terminal, Ruler, FileCode, HardDrive, Copy, Check, ExternalLink, Book, MoreVertical, ScanLine, Hash, Activity, RefreshCw, ShieldCheck, User, Database, Cpu, Loader2, ChevronRight } from 'lucide-react';
+import { MousePointer2, Star, FileText, Box, Layers, Terminal, Ruler, FileCode, HardDrive, Copy, Check, ExternalLink, Book, MoreVertical, ScanLine, Hash, Activity, RefreshCw, ShieldCheck, User, Database, Cpu, Loader2, ChevronRight, Trash2, Edit } from 'lucide-react';
 import { generateCategoryLore } from '../services/geminiService';
 
 // Helper to render nested SVG nodes recursively
@@ -95,9 +95,21 @@ interface TradingCardProps {
   onZoom?: () => void;
   onClose?: () => void;
   onToggleFavorite?: (id: string) => void;
+  onEdit?: (card: StandardCard) => void;
+  onDelete?: (id: string) => void;
 }
 
-export const TradingCard: React.FC<TradingCardProps> = ({ card, description, theme, variant = 'gallery', onZoom, onClose, onToggleFavorite }) => {
+export const TradingCard: React.FC<TradingCardProps> = ({ 
+    card, 
+    description, 
+    theme, 
+    variant = 'gallery', 
+    onZoom, 
+    onClose, 
+    onToggleFavorite,
+    onEdit,
+    onDelete
+}) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [copied, setCopied] = useState(false);
   const [lore, setLore] = useState<string | null>(null);
@@ -156,6 +168,19 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
     } finally {
         setLoadingLore(false);
     }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if(onEdit) onEdit(card);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Simple confirm here, ideally a custom modal in App.tsx
+      if (onDelete && window.confirm("Are you sure you want to PURGE this record from the database?")) {
+          onDelete(card.id);
+      }
   };
 
   const borderColorClass = theme.baseColor.replace('bg-', 'border-');
@@ -228,9 +253,14 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
                  >
                     <Star size={14} className={card.isFavorite ? "fill-amber-400 text-amber-400" : "text-neutral-600 hover:text-white"} />
                  </button>
-                 <button className="p-2 text-neutral-600 hover:text-white transition-colors">
-                    <ChevronRight size={16} />
-                 </button>
+                 <div className="flex gap-1">
+                    <button onClick={handleEditClick} className="p-2 text-neutral-600 hover:text-indigo-400 transition-colors" title="Edit">
+                        <Edit size={14} />
+                    </button>
+                    <button onClick={handleDeleteClick} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Delete">
+                        <Trash2 size={14} />
+                    </button>
+                 </div>
             </div>
         </div>
     );
@@ -387,12 +417,22 @@ export const TradingCard: React.FC<TradingCardProps> = ({ card, description, the
                      </div>
                   )}
                 </div>
-                <button 
-                    onClick={handleStarClick} 
-                    className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full transition-all group shadow-lg"
-                >
-                  <Star size={24} className={card.isFavorite ? "fill-amber-400 text-amber-400" : "text-neutral-600 group-hover:text-white"} />
-                </button>
+                
+                {/* Header Actions */}
+                <div className="flex flex-col gap-2">
+                    <button 
+                        onClick={handleStarClick} 
+                        className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full transition-all group shadow-lg"
+                    >
+                        <Star size={24} className={card.isFavorite ? "fill-amber-400 text-amber-400" : "text-neutral-600 group-hover:text-white"} />
+                    </button>
+                    <button onClick={handleEditClick} className="p-3 bg-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/50 border border-white/5 rounded-full transition-all group text-neutral-500 hover:text-indigo-400">
+                        <Edit size={20} />
+                    </button>
+                    <button onClick={handleDeleteClick} className="p-3 bg-white/5 hover:bg-red-500/20 hover:border-red-500/50 border border-white/5 rounded-full transition-all group text-neutral-500 hover:text-red-400">
+                        <Trash2 size={20} />
+                    </button>
+                </div>
              </div>
 
              {/* Main Content Area (Grid Background) */}

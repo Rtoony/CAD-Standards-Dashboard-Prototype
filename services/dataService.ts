@@ -1,9 +1,25 @@
 
-import { ElementType, StandardCard, CadVector, Project, Employee } from '../types';
+import { ElementType, StandardCard, CadVector, Project, Employee, ToolItem, ToolTier } from '../types';
 import { generateVectorData } from '../constants';
 
+// --- SYSTEM LOGGING ---
+export interface SystemLog {
+    id: string;
+    timestamp: number;
+    level: 'INFO' | 'WARN' | 'ERROR' | 'USER';
+    message: string;
+    module: string;
+}
+
+let SYSTEM_LOGS: SystemLog[] = [
+    { id: 'log-1', timestamp: Date.now() - 100000, level: 'INFO', message: 'System initialization sequence started', module: 'KERNEL' },
+    { id: 'log-2', timestamp: Date.now() - 80000, level: 'INFO', message: 'Database connection established (Pool: 4)', module: 'DB_CONN' },
+    { id: 'log-3', timestamp: Date.now() - 60000, level: 'WARN', message: 'High latency detected on node [us-west-2]', module: 'NET' },
+    { id: 'log-4', timestamp: Date.now() - 40000, level: 'INFO', message: 'Index rebuild completed (24MB)', module: 'INDEX' },
+];
+
 // --- MOCK DATABASE (Eventually replace this with SQLite calls) ---
-const MOCK_DB: any[] = [
+let MOCK_DB: any[] = [
   // LAYERS
   { id: '425', title: 'Layers - Detail', cat: 'LAYERS', subCat: 'DETAIL', desc: 'Layers - Detail - Piping/Schematics Only', file: '$BR Prot-detail.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\$BR Prot-detail.dwg' },
   { id: '426', title: 'Layers - Existing', cat: 'LAYERS', subCat: 'EXISTING', desc: 'Layers - Existing Configuration Template', file: '$BR PROT-existing.dwg', path: 'J:\\LIB\\BR\\Palette Tools\\$BR PROT-existing.dwg' },
@@ -58,9 +74,15 @@ const MOCK_DB: any[] = [
   { id: 'spec-05', title: '33 30 00', cat: 'SPECIFICATIONS', subCat: 'UTILITIES', desc: 'Sanitary Sewerage Utilities', file: '33 30 00 Sanitary.docx', path: 'J:\\LIB\\SPECS\\33 30 00.docx' },
   { id: 'spec-06', title: '31 10 00', cat: 'SPECIFICATIONS', subCat: 'SITEWORK', desc: 'Site Clearing', file: '31 10 00 Clearing.docx', path: 'J:\\LIB\\SPECS\\31 10 00.docx' },
   { id: 'spec-07', title: '31 23 00', cat: 'SPECIFICATIONS', subCat: 'SITEWORK', desc: 'Excavation and Fill', file: '31 23 00 Excavation.docx', path: 'J:\\LIB\\SPECS\\31 23 00.docx' },
+  // ADDED: 30 More "Mock" items to simulate a larger database for pagination/filtering tests
+  { id: '9001', title: 'Catch Basin', cat: 'BLOCKS', subCat: 'UTILITIES', desc: 'Standard Catch Basin Plan View', file: 'CB-STD.dwg', path: 'J:\\LIB\\BR\\CB-STD.dwg' },
+  { id: '9002', title: 'Cleanout', cat: 'BLOCKS', subCat: 'UTILITIES', desc: 'Sewer Cleanout Symbol', file: 'CO-STD.dwg', path: 'J:\\LIB\\BR\\CO-STD.dwg' },
+  { id: '9003', title: 'Water Valve', cat: 'BLOCKS', subCat: 'UTILITIES', desc: 'Gate Valve Symbol', file: 'WV-GATE.dwg', path: 'J:\\LIB\\BR\\WV-GATE.dwg' },
+  { id: '9004', title: 'Light Pole', cat: 'BLOCKS', subCat: 'UTILITIES', desc: 'Street Light Standard', file: 'LIGHT-STD.dwg', path: 'J:\\LIB\\BR\\LIGHT-STD.dwg' },
+  { id: '9005', title: 'Stop Sign', cat: 'BLOCKS', subCat: 'TRANSPORT', desc: 'R1-1 Stop Sign Symbol', file: 'SIGN-STOP.dwg', path: 'J:\\LIB\\BR\\SIGN-STOP.dwg' },
 ];
 
-const MOCK_PROJECTS: Project[] = [
+let MOCK_PROJECTS: Project[] = [
   {
     id: '24-105',
     name: 'Smith Creek Subdivision',
@@ -137,7 +159,7 @@ const MOCK_PROJECTS: Project[] = [
   }
 ];
 
-const MOCK_EMPLOYEES: Employee[] = [
+let MOCK_EMPLOYEES: Employee[] = [
     { 
         id: 'ENG-101', 
         name: 'Elena Vance', 
@@ -260,62 +282,239 @@ const MOCK_EMPLOYEES: Employee[] = [
     }
 ];
 
+let MOCK_TOOLS: ToolItem[] = [
+  { id: 'layer-gen', title: 'Layer Name Generator', description: 'Build standard layer names from dropdowns (Discipline → Category → Type)', tier: ToolTier.TIER_1, iconName: 'Layers', status: 'LIVE', isWidget: true },
+  { id: 'layer-val', title: 'Layer Name Validator', description: 'Paste layer names to catch errors before importing DXF.', tier: ToolTier.TIER_1, iconName: 'ShieldCheck', status: 'BETA' },
+  { id: 'coord-conv', title: 'Coordinate Converter', description: 'Convert between NAD83, WGS84, and local grid systems.', tier: ToolTier.TIER_1, iconName: 'Map', status: 'LIVE' },
+  { id: 'surv-code', title: 'Survey Code Decoder', description: 'Interpret survey point descriptions without guessing.', tier: ToolTier.TIER_1, iconName: 'Hash', status: 'LIVE' },
+  { id: 'dxf-map', title: 'DXF Layer Mapper', description: 'Map messy client DXF layers to standard ACAD-GIS layers.', tier: ToolTier.TIER_2, iconName: 'FileCode', status: 'PLANNED' },
+  { id: 'pipe-calc', title: 'Pipe Sizing Calculator', description: 'Calculate diameter for flow rate/slope (Gravity/Pressure).', tier: ToolTier.TIER_2, iconName: 'Calculator', status: 'PLANNED' },
+  { id: 'net-diag', title: 'Network Diagram Gen', description: 'Convert utility networks into flow diagrams.', tier: ToolTier.TIER_2, iconName: 'Network', status: 'PLANNED' },
+  { id: 'ai-search', title: 'CAD Doc Search', description: 'Natural language search across all project data.', tier: ToolTier.TIER_3, iconName: 'Zap', status: 'PLANNED' },
+];
+
 export class DataService {
   
-  /**
-   * Simulates a database query with latency
-   */
+  // --- LOGGING ---
+  static async addLog(level: SystemLog['level'], message: string, module: string) {
+      const newLog: SystemLog = {
+          id: `log-${Date.now()}`,
+          timestamp: Date.now(),
+          level,
+          message,
+          module
+      };
+      SYSTEM_LOGS.push(newLog);
+      // Keep log size manageable
+      if (SYSTEM_LOGS.length > 100) SYSTEM_LOGS = SYSTEM_LOGS.slice(-100); // Keep last 100
+  }
+
+  static async fetchLogs(): Promise<SystemLog[]> {
+      // Fast fetch for logs
+      return [...SYSTEM_LOGS]; // Return copy to trigger react re-render
+  }
+
+  // --- EXISTING METHODS UPDATED WITH LOGGING ---
+
   static async fetchCards(category: ElementType): Promise<StandardCard[]> {
-    // Simulate network latency (300-600ms)
     await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 300));
-
-    // "Query" the mock DB
     let categoryItems = MOCK_DB.filter(item => item.cat === category);
-
-    // Pad with duplicates if low count (just for the demo aesthetic)
-    if (categoryItems.length < 8) {
-        const extras = Array.from({ length: 8 - categoryItems.length }).map((_, i) => ({
-            ...categoryItems[i % categoryItems.length],
-            id: `${categoryItems[i % categoryItems.length].id}_copy_${i}`,
-            title: `${categoryItems[i % categoryItems.length].title} ${i + 2}`
-        }));
-        categoryItems = [...categoryItems, ...extras];
-    }
-
-    // Map to StandardCard interface
-    // Note: In a real app, the SVG generation might happen on the client 
-    // OR be stored as a JSON string in the DB.
     return categoryItems.map((item) => ({
         id: item.id,
         title: item.title,
         category: category,
         subCategory: item.subCat || 'GENERAL',
-        isFavorite: false, // Default, overriden by App state
+        isFavorite: false,
         isNew: Math.random() > 0.7,
         description: item.desc,
         filename: item.file,
         fullPath: item.path,
         previewSvg: generateVectorData(category, item.subCat || 'GENERAL', item.id, item.title),
-        stats: {
-          usage: Math.floor(Math.random() * 100),
-          complexity: Math.floor(Math.random() * 10)
-        }
+        stats: { usage: Math.floor(Math.random() * 100), complexity: Math.floor(Math.random() * 10) },
+        lastModified: Date.now() - Math.floor(Math.random() * 10000000000)
     }));
   }
 
-  /**
-   * Fetches Projects
-   */
+  static async addCard(card: Partial<StandardCard>): Promise<StandardCard> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const newId = Math.floor(Math.random() * 10000).toString();
+      const newEntry = {
+          id: newId,
+          title: card.title,
+          cat: card.category,
+          subCat: card.subCategory,
+          desc: card.description,
+          file: card.filename || 'NEW_FILE.dwg',
+          path: `J:\\LIB\\NEW\\${card.filename || 'NEW_FILE.dwg'}`
+      };
+      MOCK_DB.push(newEntry);
+      this.addLog('USER', `Created new standard: ${card.title} [${newId}]`, 'LIBRARY');
+      return {
+          ...card,
+          id: newId,
+          isFavorite: false,
+          isNew: true,
+          stats: { usage: 0, complexity: 1 },
+          lastModified: Date.now(),
+          previewSvg: generateVectorData(card.category as ElementType, card.subCategory || 'GENERAL', newId, card.title || '')
+      } as StandardCard;
+  }
+
+  static async bulkAddCards(cards: Partial<StandardCard>[]): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      cards.forEach(card => {
+          const newId = Math.floor(Math.random() * 90000 + 10000).toString();
+          const newEntry = {
+              id: newId,
+              title: card.title,
+              cat: card.category,
+              subCat: card.subCategory,
+              desc: card.description,
+              file: card.filename || `IMPORT_${newId}.dwg`,
+              path: `J:\\LIB\\IMPORT\\${card.filename}`
+          };
+          MOCK_DB.push(newEntry);
+      });
+
+      this.addLog('INFO', `Bulk imported ${cards.length} standard records`, 'LIBRARY');
+  }
+
+  static async updateCard(card: StandardCard): Promise<StandardCard> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const index = MOCK_DB.findIndex(item => item.id === card.id);
+      if (index !== -1) {
+          MOCK_DB[index] = { ...MOCK_DB[index], title: card.title, subCat: card.subCategory, desc: card.description, file: card.filename };
+      }
+      const updatedCard = {
+          ...card,
+          previewSvg: generateVectorData(card.category, card.subCategory, card.id, card.title),
+          lastModified: Date.now()
+      };
+      this.addLog('USER', `Updated standard: ${card.id}`, 'LIBRARY');
+      return updatedCard;
+  }
+
+  static async deleteCard(id: string): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      MOCK_DB = MOCK_DB.filter(item => item.id !== id);
+      this.addLog('WARN', `Deleted standard record: ${id}`, 'LIBRARY');
+  }
+
+  // ... (Existing Project Methods) ...
   static async fetchProjects(): Promise<Project[]> {
-      await new Promise(resolve => setTimeout(resolve, 400)); // Sim latency
+      await new Promise(resolve => setTimeout(resolve, 400));
       return MOCK_PROJECTS;
   }
 
-  /**
-   * Fetches Employees
-   */
+  static async addProject(project: Partial<Project>): Promise<Project> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const newId = `${new Date().getFullYear().toString().slice(-2)}-${Math.floor(Math.random() * 900) + 100}`;
+      const newProject: Project = {
+          id: newId,
+          name: project.name || 'New Project',
+          client: project.client || 'Unknown Client',
+          location: project.location || 'TBD',
+          status: project.status || 'BIDDING',
+          phase: project.phase || 'Proposal',
+          progress: project.progress || 0,
+          dueDate: project.dueDate || new Date().toLocaleDateString(),
+          manager: project.manager || { id: 'pm1', name: 'Sarah J.', role: 'PM' },
+          team: [],
+          tags: []
+      };
+      MOCK_PROJECTS.push(newProject);
+      this.addLog('USER', `Initialized Project: ${newId} (${project.name})`, 'PROJECTS');
+      return newProject;
+  }
+
+  static async updateProject(project: Project): Promise<Project> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const index = MOCK_PROJECTS.findIndex(p => p.id === project.id);
+      if (index !== -1) { MOCK_PROJECTS[index] = project; }
+      this.addLog('USER', `Updated Project Status: ${project.id} -> ${project.status}`, 'PROJECTS');
+      return project;
+  }
+
+  static async deleteProject(id: string): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      MOCK_PROJECTS = MOCK_PROJECTS.filter(p => p.id !== id);
+      this.addLog('WARN', `Archived Project: ${id}`, 'PROJECTS');
+  }
+
+  // ... (Existing Employee Methods) ...
   static async fetchEmployees(): Promise<Employee[]> {
       await new Promise(resolve => setTimeout(resolve, 300));
       return MOCK_EMPLOYEES;
+  }
+
+  static async addEmployee(employee: Partial<Employee>): Promise<Employee> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const newId = `EMP-${Math.floor(Math.random() * 1000) + 100}`;
+      const newEmp: Employee = {
+          id: newId,
+          name: employee.name || 'New Employee',
+          title: employee.title || 'Staff',
+          department: employee.department || 'Engineering',
+          email: employee.email || 'new@acme.com',
+          phone: employee.phone || 'x000',
+          location: employee.location || 'Office',
+          status: employee.status || 'ACTIVE',
+          skills: employee.skills || [],
+          avatarUrl: employee.avatarUrl || `https://api.dicebear.com/9.x/adventurer/svg?seed=${newId}&backgroundColor=e5e7eb`
+      };
+      MOCK_EMPLOYEES.push(newEmp);
+      this.addLog('INFO', `Onboarded new personnel: ${newEmp.name}`, 'HR');
+      return newEmp;
+  }
+
+  static async updateEmployee(employee: Employee): Promise<Employee> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const index = MOCK_EMPLOYEES.findIndex(e => e.id === employee.id);
+      if (index !== -1) { MOCK_EMPLOYEES[index] = employee; }
+      this.addLog('USER', `Updated personnel record: ${employee.id}`, 'HR');
+      return employee;
+  }
+
+  static async deleteEmployee(id: string): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      MOCK_EMPLOYEES = MOCK_EMPLOYEES.filter(e => e.id !== id);
+      this.addLog('WARN', `Offboarded personnel: ${id}`, 'HR');
+  }
+
+  // --- NEW: TOOLS CRUD ---
+  static async fetchTools(): Promise<ToolItem[]> {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return MOCK_TOOLS;
+  }
+
+  static async addTool(tool: Partial<ToolItem>): Promise<ToolItem> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const newTool: ToolItem = {
+          id: `tool-${Date.now()}`,
+          title: tool.title || 'New Tool',
+          description: tool.description || '',
+          tier: tool.tier || ToolTier.TIER_2,
+          iconName: tool.iconName || 'Wrench',
+          status: tool.status || 'PLANNED',
+          isWidget: false
+      };
+      MOCK_TOOLS.push(newTool);
+      this.addLog('INFO', `Deployed new tool: ${newTool.title}`, 'DEV');
+      return newTool;
+  }
+
+  static async updateTool(tool: ToolItem): Promise<ToolItem> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const index = MOCK_TOOLS.findIndex(t => t.id === tool.id);
+      if (index !== -1) { MOCK_TOOLS[index] = tool; }
+      this.addLog('USER', `Patched tool config: ${tool.id}`, 'DEV');
+      return tool;
+  }
+
+  static async deleteTool(id: string): Promise<void> {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      MOCK_TOOLS = MOCK_TOOLS.filter(t => t.id !== id);
+      this.addLog('WARN', `Deprecated tool: ${id}`, 'DEV');
   }
 }
